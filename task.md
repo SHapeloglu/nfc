@@ -4,7 +4,6 @@ Bu dosya `/opt/generator-studio-dev` içindir. 2026-10-26 incelemesiyle yenilend
 
 ## 🔜 Sıradaki
 
-- [ ] **Port 18086 çakışması** — `/opt/ipad1vnc/docker-compose.yml` `127.0.0.1:18086` tanımlıyor; dev web şu an bu portu tutuyor, ipad1vnc yeniden başlarsa port alamaz. Dev için başka bir port seçilmeli (karar kullanıcıda). `compose.yaml` içindeki `TODO(kontrol)` yorumu da hâlâ 18085'ten söz ediyor, güncellenmeli.
 - [ ] **Testler örnek seviyesinde** — yalnız `tests/*/ExampleTest.php` var. Öncelik: yetki sınırları (oturumsuz, `is_admin=false`, başka kullanıcının tasarımı → 404), `QrDesignController` doğrulaması, logo yükleme, `LinkProjectController` URL doğrulaması, `/api/nfc/projects` token yetkisi.
 - [x] **Git deposu** — 2026-10-26: `git init` yapıldı, `main` dalı `github.com/SHapeloglu/nfc` (public) reposuna push edildi. Yedek dosyaları `.gitignore` ile dışarıda.
 - [ ] **`.env` yedeği gitignore'da değil** — `.gitignore` yalnız `.env.backup` içeriyor; `.env.backup*` deseni eklenmeli (onay gerekir). Dosya içeriği okunmadı.
@@ -20,6 +19,7 @@ Bu dosya `/opt/generator-studio-dev` içindir. 2026-10-26 incelemesiyle yenilend
 
 ## ✅ Tamamlanan
 
+- [x] 2026-10-26 — Port çakışması giderildi: dev web `18086` → `18087` (`compose.yaml`, konteyner yeniden oluşturuldu). `18086` artık boş, `/opt/ipad1vnc` için serbest; canlı `18085` etkilenmedi.
 - [x] 2026-10-26 — Oturumsuz `auth` isteğinde 500 giderildi: `bootstrap/app.php` içinde `redirectGuestsTo` ile `/admin/login`'e yönlendirme. Doğrulama: `/nfc-studio` ve `/qr/logos/…` 302 → `/admin/login`; JSON isteği 401; `/api/*` 401.
 - [x] 2026-10-26 — Proje incelemesi; altı md dosyası dev kopyasına göre yenilendi.
 - [x] 2026-10-26 — Doğrulama: Google yorum arama ucu `auth` + `throttle:10,1` + `is_admin` ile korunuyor (eski kayıtta "görünmüyor" deniyordu).

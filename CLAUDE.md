@@ -6,7 +6,7 @@ Laravel 13 uygulaması (PHP 8.4-FPM + nginx, Docker Compose). Canlı adres: `htt
 
 - **Bu dizin geliştirme kopyasıdır:** `/opt/generator-studio-dev` (compose adı `generator-studio-dev`; `./` → konteyner `/var/www/html`). **Canlı kurulum** `/opt/generator-studio` içindedir; oradaki dosyalara dokunma.
 - **Git deposu yok.** Yedek düzeni dosya adı soneki ile: `*.backup-YYYYMMDD-HHMMSS` (örn. `routes/web.php.backup-…`, `app/Models/User.php.before-admin`). Bir dosyayı büyük ölçüde değiştirmeden önce bu düzende yedeğini al.
-- Dev konteynerleri: `generator-studio-dev-app` (PHP-FPM, `healthy`), `generator-studio-dev-web` (nginx, `127.0.0.1:18086 → 80`). Canlı: `generator-studio-app` / `generator-studio-web` (`127.0.0.1:18085`).
+- Dev konteynerleri: `generator-studio-dev-app` (PHP-FPM, `healthy`), `generator-studio-dev-web` (nginx, `127.0.0.1:18087 → 80`). Canlı: `generator-studio-app` / `generator-studio-web` (`127.0.0.1:18085`).
 - Dev, canlıdan **ayrı veritabanı** kullanır; `APP_ENV=local`, `APP_DEBUG=true`. Host nginx sitesi (`/etc/nginx/sites-available/nfc-generator`) yalnız canlı içindir.
 - Host'ta PHP kurulu değil; `php`/`artisan`/`vendor/bin/pint` komutları `docker exec generator-studio-dev-app …` ile çalışır.
 
@@ -17,7 +17,7 @@ cd /opt/generator-studio-dev && docker compose up -d        # app + web
 docker exec generator-studio-dev-app php artisan migrate:status
 docker exec generator-studio-dev-app php artisan route:list --except-vendor
 docker logs --tail 100 generator-studio-dev-app
-curl -i http://127.0.0.1:18086/up
+curl -i http://127.0.0.1:18087/up
 ```
 
 ## Proje md dosyaları
@@ -39,7 +39,7 @@ curl -i http://127.0.0.1:18086/up
 - `.env` ve `.env.backup-*` dosyalarının değerleri md/git/zip'e yazılmaz; yalnız değişken adı geçer.
 - Yeni rota eklerken `// QR_..._ROUTES` ve `// QR_..._STORAGE` başlık satırlarını silme (bir araç kullanıyor olabilir; `web.php` başında not var).
 - Yönetici kontrolü `is_admin` ile denetleyicide yapılır; yeni yönetici uç noktası eklerken aynısını uygula.
-- `compose.yaml` içindeki dev portu `127.0.0.1:18086`, `/opt/ipad1vnc/docker-compose.yml` ile çakışıyor (bkz. `task.md`); port değişikliği kullanıcı kararıyla yapılır.
+- Dev web portu `127.0.0.1:18087`, canlı `18085`; `18086` `/opt/ipad1vnc` projesine aittir, dev için kullanma. Port değişikliği kullanıcı kararıyla yapılır.
 - Laravel Boost kurulum talimatı (aşağıdaki boilerplate) bu projede uygulanmadı; `composer.json` değişikliği yalnız kullanıcı kararıyla yapılır.
 
 ---

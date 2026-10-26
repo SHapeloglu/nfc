@@ -36,9 +36,9 @@ services:
     restart: unless-stopped
     depends_on:
       - app
-    # TODO(kontrol): dev web portu 127.0.0.1:18086; /opt/ipad1vnc/docker-compose.yml de 18086 tanımlıyor, çakışma; karar bekliyor (task.md).
+    # Dev web portu 127.0.0.1:18087. Önceki 18086, /opt/ipad1vnc/docker-compose.yml ile çakışıyordu (2026-10-26'da taşındı); 18085 canlı kopyaya aittir.
     ports:
-      - "127.0.0.1:18086:80"
+      - "127.0.0.1:18087:80"
     # Kod salt okunur (:ro) bağlanır: nginx dosyaları okur ama değiştiremez. default.conf nginx site ayarıdır.
     volumes:
       - ./:/var/www/html:ro

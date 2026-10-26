@@ -10,9 +10,9 @@ cd /opt/generator-studio-dev && docker compose up -d      # app + web
 docker exec generator-studio-dev-app php artisan migrate:status
 docker exec generator-studio-dev-app php artisan route:list --except-vendor
 docker logs --tail 100 generator-studio-dev-app
-curl -i http://127.0.0.1:18086/up                          # sağlık kontrolü
+curl -i http://127.0.0.1:18087/up                          # sağlık kontrolü
 ```
-- Konteynerler: `generator-studio-dev-app` (PHP-FPM), `generator-studio-dev-web` (nginx, `127.0.0.1:18086 → 80`). Host'ta PHP kurulu değil; artisan komutları konteynerde çalıştırılır.
+- Konteynerler: `generator-studio-dev-app` (PHP-FPM), `generator-studio-dev-web` (nginx, `127.0.0.1:18087 → 80`). Host'ta PHP kurulu değil; artisan komutları konteynerde çalıştırılır.
 - Veritabanı: ortak PostgreSQL (`postgres-ortak`, ağ `ortak-db`), canlıdan **ayrı** bir geliştirme veritabanı. `ortak-db` ağı önceden oluşturulmuş olmalıdır.
 - Yapılandırma `.env` dosyasındadır (değerler repoya/md'ye yazılmaz). Google arama için `GOOGLE_PLACES_API_KEY` gerekir.
 
@@ -31,5 +31,5 @@ Laravel `^13.17`, Filament `^5`, Sanctum `^4`, `endroid/qr-code ^6.1`. Kuyruk `s
 
 ## Dikkat
 - Git deposu `github.com/SHapeloglu/nfc` (public). Yerel yedekler `*.backup-YYYYMMDD-HHMMSS` sonekiyle tutulur ve `.gitignore` ile dışarıda bırakılır.
-- Dev web portu `18086`, `/opt/ipad1vnc/docker-compose.yml` ile çakışıyor; canlı `18085` portu bu projeye ait. Ayrıntı: `task.md`.
+- Dev web portu `18087`, canlı `18085`. (`18086` `/opt/ipad1vnc` projesine aittir.)
 - Testler yalnız örnek seviyesinde: `docker exec generator-studio-dev-app php artisan test --compact`.

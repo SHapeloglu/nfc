@@ -6,7 +6,7 @@ Laravel 13 + Filament 5 uygulaması; PHP-FPM ve nginx ayrı konteynerlerde, veri
 
 ```
 Geliştirici / curl
-  │  http://127.0.0.1:18086   (host nginx sitesi yok; yalnız yerel)
+  │  http://127.0.0.1:18087   (host nginx sitesi yok; yalnız yerel)
   ▼
 generator-studio-dev-web  (nginx:stable-alpine, kod :ro bağlı)
   │  fastcgi_pass app:9000   (ağ: internal)
