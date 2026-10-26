@@ -130,6 +130,7 @@
         telegram: ['telegram', 'social'],
     });
     const storageKey = 'generator-studio-utm-custom-templates-v1';
+    const qrContentMaxLength = 2000;
     const byId = (id) => document.getElementById(id);
     let templates = {};
     let latestUrl = '';
@@ -137,6 +138,24 @@
     function status(message, error = false) {
         byId('resultStatus').textContent = message;
         byId('resultStatus').classList.toggle('error', error);
+    }
+
+    function disableQrAction() {
+        byId('qrButton').removeAttribute('href');
+        byId('qrButton').classList.add('disabled');
+        byId('qrButton').setAttribute('aria-disabled', 'true');
+        byId('qrButton').setAttribute('tabindex', '-1');
+    }
+
+    function invalidateGeneratedUrl() {
+        if (!latestUrl) {
+            return;
+        }
+        latestUrl = '';
+        byId('resultUrl').value = '';
+        byId('copyButton').disabled = true;
+        disableQrAction();
+        status('Bilgiler değişti. Güncel bağlantı için yeniden oluşturun.');
     }
 
     function loadTemplates() {
@@ -211,7 +230,12 @@
         const selected = channelPresets[event.target.value];
         if (selected) {
             [byId('source').value, byId('medium').value] = selected;
+            invalidateGeneratedUrl();
         }
+    });
+
+    ['targetUrl', 'source', 'medium', 'campaign', 'term', 'content'].forEach((id) => {
+        byId(id).addEventListener('input', invalidateGeneratedUrl);
     });
 
     byId('utmForm').addEventListener('submit', (event) => {
@@ -220,19 +244,21 @@
             latestUrl = buildUrl();
             byId('resultUrl').value = latestUrl;
             byId('copyButton').disabled = false;
-            byId('qrButton').href = {{ Js::from(route('qr.index')) }} + '?content=' + encodeURIComponent(latestUrl);
-            byId('qrButton').classList.remove('disabled');
-            byId('qrButton').removeAttribute('aria-disabled');
-            byId('qrButton').removeAttribute('tabindex');
-            status('Bağlantı oluşturuldu. QR için aşağıdaki düğmeyi kullanabilirsiniz.');
+            if (latestUrl.length > qrContentMaxLength) {
+                disableQrAction();
+                status('Bağlantı oluşturuldu ancak QR oluşturucunun 2000 karakter sınırını aşıyor. Kopyalayabilirsiniz; QR için daha kısa bir bağlantı kullanın.', true);
+            } else {
+                byId('qrButton').href = {{ Js::from(route('qr.index')) }} + '?content=' + encodeURIComponent(latestUrl);
+                byId('qrButton').classList.remove('disabled');
+                byId('qrButton').removeAttribute('aria-disabled');
+                byId('qrButton').removeAttribute('tabindex');
+                status('Bağlantı oluşturuldu. QR için aşağıdaki düğmeyi kullanabilirsiniz.');
+            }
         } catch (error) {
             latestUrl = '';
             byId('resultUrl').value = '';
             byId('copyButton').disabled = true;
-            byId('qrButton').removeAttribute('href');
-            byId('qrButton').classList.add('disabled');
-            byId('qrButton').setAttribute('aria-disabled', 'true');
-            byId('qrButton').setAttribute('tabindex', '-1');
+            disableQrAction();
             status(error.message, true);
         }
     });
@@ -278,6 +304,7 @@
             byId('channel').value = '';
             byId('source').value = selected.source;
             byId('medium').value = selected.medium;
+            invalidateGeneratedUrl();
         }
     });
 
