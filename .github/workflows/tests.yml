@@ -27,8 +27,14 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Prepare Laravel directories
+        run: |
+         mkdir -p storage/framework/cache/data
+         mkdir -p storage/framework/sessions
+         mkdir -p storage/framework/testing
+         mkdir -p storage/framework/views
+         mkdir -p storage/logs
+         mkdir -p bootstrap/cache
 
       - name: Generate an ephemeral application key
         run: echo "APP_KEY=$(php artisan key:generate --show --no-interaction)" >> "$GITHUB_ENV"
@@ -72,8 +78,14 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Prepare Laravel directories
+        run: |
+          mkdir -p storage/framework/cache/data
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/testing
+          mkdir -p storage/framework/views
+          mkdir -p storage/logs
+          mkdir -p bootstrap/cache
 
       - name: Generate an ephemeral application key
         run: echo "APP_KEY=$(php artisan key:generate --show --no-interaction)" >> "$GITHUB_ENV"
