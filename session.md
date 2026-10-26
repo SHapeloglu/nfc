@@ -26,10 +26,12 @@ Bu dosya `/opt/generator-studio-dev` geliştirme kopyası içindir. Canlı kopya
 - Mevcut md'ler silinmedi, projedeki yedek düzenine uygun olarak sonekli kopyası alındı.
 
 **Açık sorunlar:**
-- Yukarıdaki iki bulgu (500 hatası, 18086 çakışması) için karar bekliyor; ayrıntı `task.md`.
+- 18086 port çakışması için karar bekliyor; ayrıntı `task.md`. (500 hatası giderildi, aşağıdaki Ek.)
 
 **Sıradaki adım:**
-- Kullanıcıdan: `login` yönlendirme kararı, dev port kararı, git kararı.
+- Kullanıcıdan: dev port kararı.
+
+**Ek (aynı gün):** `/nfc-studio` 500 hatası giderildi (`bootstrap/app.php` `redirectGuestsTo`). Yorumlar dört ajanla eklendi, depo `github.com/SHapeloglu/nfc` reposuna push edildi (`54d096c`). Düzeltme henüz push edilmedi.
 
 ---
 

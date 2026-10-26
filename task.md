@@ -4,10 +4,9 @@ Bu dosya `/opt/generator-studio-dev` içindir. 2026-10-26 incelemesiyle yenilend
 
 ## 🔜 Sıradaki
 
-- [ ] **Oturumsuz istekte 500 (doğrulandı)** — `auth` middleware'li web rotaları (`/nfc-studio`, `/qr/logos`, `/google-yorum/ara`, `/baglantilar/kaydet`) oturumsuz tarayıcı isteğinde 500 veriyor; `login` adlı rota yok, giriş yalnız `/admin/login`. Karar: `bootstrap/app.php` içinde `redirectGuestsTo` ile `/admin/login`'e yönlendirmek veya `login` adlı rota eklemek. `curl http://127.0.0.1:18086/nfc-studio` ile doğrulanır.
 - [ ] **Port 18086 çakışması** — `/opt/ipad1vnc/docker-compose.yml` `127.0.0.1:18086` tanımlıyor; dev web şu an bu portu tutuyor, ipad1vnc yeniden başlarsa port alamaz. Dev için başka bir port seçilmeli (karar kullanıcıda). `compose.yaml` içindeki `TODO(kontrol)` yorumu da hâlâ 18085'ten söz ediyor, güncellenmeli.
 - [ ] **Testler örnek seviyesinde** — yalnız `tests/*/ExampleTest.php` var. Öncelik: yetki sınırları (oturumsuz, `is_admin=false`, başka kullanıcının tasarımı → 404), `QrDesignController` doğrulaması, logo yükleme, `LinkProjectController` URL doğrulaması, `/api/nfc/projects` token yetkisi.
-- [ ] **Git deposu yok** — değişiklik geçmişi yalnız `*.backup-*` / `*.before-*` soneklerinde. Repo açılması veya yedek düzeni kararı gerekli.
+- [x] **Git deposu** — 2026-10-26: `git init` yapıldı, `main` dalı `github.com/SHapeloglu/nfc` (public) reposuna push edildi. Yedek dosyaları `.gitignore` ile dışarıda.
 - [ ] **`.env` yedeği gitignore'da değil** — `.gitignore` yalnız `.env.backup` içeriyor; `.env.backup*` deseni eklenmeli (onay gerekir). Dosya içeriği okunmadı.
 - [ ] **Yedek dosyaları dizinde** — `routes/web.php.backup-*` (3), `web.php.before-*` (3), `routes/api.php.before-*`, `composer.*.before-nfc-api`, `app/Models/User.php.before-*`, `app/Providers/AppServiceProvider.php.bak-*`, `resources/views/**/*.bak*`, `*.before-*`, `backups/`. Kod ağacı dışına taşınmalı veya silinmeli (kullanıcı kararı). `public/` içinde yedek dosya yok (2026-10-26 kontrolü).
 - [ ] **Tekrar kayıt yarışı** — `link_projects` tablosunda `(user_id, type, target_url)` için unique kısıt yok; tekrar kontrolü yalnız uygulamada. Eşzamanlı iki istek çift kayıt üretebilir.
@@ -21,6 +20,7 @@ Bu dosya `/opt/generator-studio-dev` içindir. 2026-10-26 incelemesiyle yenilend
 
 ## ✅ Tamamlanan
 
+- [x] 2026-10-26 — Oturumsuz `auth` isteğinde 500 giderildi: `bootstrap/app.php` içinde `redirectGuestsTo` ile `/admin/login`'e yönlendirme. Doğrulama: `/nfc-studio` ve `/qr/logos/…` 302 → `/admin/login`; JSON isteği 401; `/api/*` 401.
 - [x] 2026-10-26 — Proje incelemesi; altı md dosyası dev kopyasına göre yenilendi.
 - [x] 2026-10-26 — Doğrulama: Google yorum arama ucu `auth` + `throttle:10,1` + `is_admin` ile korunuyor (eski kayıtta "görünmüyor" deniyordu).
 - [x] 2026-10-25 — `link_projects` ve `personal_access_tokens` migration'ları, Sanctum ve NFC API.

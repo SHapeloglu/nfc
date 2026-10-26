@@ -15,9 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    // Özel ara katman (middleware) ayarı yok; varsayılanlar kullanılır.
+    // Oturumsuz kullanıcı 'auth' korumalı bir sayfaya girerse Filament giriş ekranına (/admin/login) yönlendirilir.
+    // Uygulamada 'login' adlı rota yoktur; bu ayar olmadan Laravel route('login') arar ve 500 hatası verir.
+    // JSON/API istekleri yönlendirilmez, 401 alır (aşağıdaki hata ayarı).
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->redirectGuestsTo(fn () => route('filament.admin.auth.login'));
     })
     // Hata cevapları: JSON bekleyen istekler (api/* ya da expectsJson) hata sayfası yerine JSON cevabı alır.
     ->withExceptions(function (Exceptions $exceptions): void {

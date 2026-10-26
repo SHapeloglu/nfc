@@ -30,7 +30,6 @@ curl -i http://127.0.0.1:18086/up                          # sağlık kontrolü
 Laravel `^13.17`, Filament `^5`, Sanctum `^4`, `endroid/qr-code ^6.1`. Kuyruk `sync`, önbellek ve oturum `file`, mail `log`. Logolar `storage/app/private/qr-logos/{user_id}/` altında, kamuya açık değildir.
 
 ## Dikkat
-- Git deposu yoktur; yedekler dosya adı sonekiyle tutulur (`*.backup-YYYYMMDD-HHMMSS`).
+- Git deposu `github.com/SHapeloglu/nfc` (public). Yerel yedekler `*.backup-YYYYMMDD-HHMMSS` sonekiyle tutulur ve `.gitignore` ile dışarıda bırakılır.
 - Dev web portu `18086`, `/opt/ipad1vnc/docker-compose.yml` ile çakışıyor; canlı `18085` portu bu projeye ait. Ayrıntı: `task.md`.
-- Oturumsuz kullanıcı `auth` korumalı web sayfasına girince şu an 500 alıyor (bilinen sorun, `task.md`).
 - Testler yalnız örnek seviyesinde: `docker exec generator-studio-dev-app php artisan test --compact`.

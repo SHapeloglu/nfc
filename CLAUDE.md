@@ -32,7 +32,7 @@ curl -i http://127.0.0.1:18086/up
 - Rotalar (`routes/web.php`): `/`, `/qr`, `/google-yorum`, `/instagram-takip` herkese açık; `/qr/generate` 30 istek/dk; `/qr/designs` GET/POST yönetici kontrolü denetleyicide (`abort_unless is_admin`); `/qr/logos`, `/google-yorum/ara`, `/baglantilar/kaydet`, `/nfc-studio` `auth` + `is_admin`.
 - API (`routes/api.php`): `GET /api/nfc/projects` — `auth:sanctum`, token yetkisi `nfc:read`, `is_admin`, 30 istek/dk.
 - Migration'lar: `users.is_admin`, `qr_designs` (2026-10-22), `link_projects`, `personal_access_tokens` (2026-10-25).
-- Bilinen sorun: oturumsuz kullanıcı `auth` korumalı web rotasına girince 500 alır (`login` adlı rota yok); ayrıntı `task.md`.
+- Oturumsuz kullanıcı `auth` korumalı web rotasına girince `/admin/login`'e yönlendirilir (`bootstrap/app.php` `redirectGuestsTo`; `login` adlı rota yoktur).
 
 ## Kurallar
 

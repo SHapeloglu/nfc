@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 /**
  * Oturumdaki kullanıcıyı JSON döner. Sanctum kimlik doğrulaması (auth:sanctum) gerekir; istek sınırı yoktur.
- * Bilinen sorun: kimliksiz istek bazı durumlarda 500 verebilir (login adlı rota yok), bkz. task.md.
+ * Kimliksiz istek 401 alır (JSON cevabı; bootstrap/app.php).
  */
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -14,7 +14,7 @@ Route::get('/user', function (Request $request) {
 /**
  * NFC köprüsü için yönetici kullanıcının projelerini JSON döner (GET /api/nfc/projects).
  * Sanctum (auth:sanctum) ve dakikada 30 istek sınırı vardır. Yönetici kontrolü (is_admin) rota içinde yapılır;
- * ayrıca jetonun 'nfc:read' yetkisi olmalıdır, yoksa 403. Bilinen sorun: kimliksiz istekte 500 olasılığı, bkz. task.md.
+ * ayrıca jetonun 'nfc:read' yetkisi olmalıdır, yoksa 403. Kimliksiz istek 401 alır.
  */
 Route::get('/nfc/projects', function (Request $request) {
 

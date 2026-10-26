@@ -89,7 +89,7 @@ Route::view('/instagram-takip', 'generators.instagram-follow')
 // LINK_PROJECT_STORAGE
 /**
  * Bağlantı/NFC projesini kaydeder. Giriş (auth) ve dakikada 30 istek sınırı vardır; kayıt mantığı LinkProjectController@store içindedir.
- * Bilinen sorun: oturumsuz kullanıcı bu rotada 500 alır (login adlı rota yok), bkz. task.md.
+ * Oturumsuz kullanıcı /admin/login adresine yönlendirilir (bootstrap/app.php redirectGuestsTo).
  */
 Route::post('/baglantilar/kaydet', [
     \App\Http\Controllers\LinkProjectController::class, 'store'
@@ -102,7 +102,7 @@ Route::post('/baglantilar/kaydet', [
 /**
  * NFC Studio sayfası. Giriş (auth) gerekir; yönetici kontrolü rota içinde yapılır (is_admin değilse 403).
  * Yalnız oturumdaki kullanıcının projelerini (id, name, type, target_url) en yeniden eskiye listeler. İstek sınırı yoktur.
- * Bilinen sorun: oturumsuz kullanıcı 500 alır (login adlı rota yok), bkz. task.md.
+ * Oturumsuz kullanıcı /admin/login adresine yönlendirilir (bootstrap/app.php redirectGuestsTo).
  */
 Route::get('/nfc-studio', function (\Illuminate\Http\Request $request) {
     abort_unless($request->user()?->is_admin, 403);
