@@ -27,6 +27,14 @@ Route::post('/qr/generate', [
     \App\Http\Controllers\QrGeneratorController::class, 'generate'
 ])->middleware('throttle:30,1')->name('qr.generate');
 
+Route::get('/wifi-qr', [
+    \App\Http\Controllers\WifiQrController::class, 'index',
+])->name('wifi.qr.index');
+
+Route::post('/wifi-qr/generate', [
+    \App\Http\Controllers\WifiQrController::class, 'generate',
+])->middleware('throttle:30,1')->name('wifi.qr.generate');
+
 // QR_DESIGN_STORAGE
 /**
  * Kullanıcının kayıtlı QR tasarımlarını JSON olarak listeler. Giriş middleware'i yoktur; yönetici kontrolü denetleyicidedir (yönetici değilse 403).
