@@ -36,6 +36,8 @@ class LinkTargetService
         parse_str($url['query'] ?? '', $params);
 
         if ($type === 'google_review') {
+            $this->requireSingleQueryParameter($url['query'] ?? '', 'placeid');
+
             $placeId = $params['placeid'] ?? null;
 
             if (
@@ -51,6 +53,8 @@ class LinkTargetService
         }
 
         if ($type === 'instagram_follow') {
+            $this->requireSingleQueryParameter($url['query'] ?? '', 'xtok');
+
             $username = trim($url['path'] ?? '', '/');
             $token = $params['xtok'] ?? null;
 
@@ -67,6 +71,23 @@ class LinkTargetService
         }
 
         $this->reject('Desteklenmeyen bağlantı türü.');
+    }
+
+    private function requireSingleQueryParameter(string $query, string $parameter): void
+    {
+        $count = 0;
+
+        foreach (explode('&', $query) as $part) {
+            $name = rawurldecode(explode('=', $part, 2)[0]);
+
+            if ($name === $parameter) {
+                $count++;
+            }
+        }
+
+        if ($count !== 1) {
+            $this->reject('Bağlantı parametresi tam olarak bir kez belirtilmelidir.');
+        }
     }
 
     private function reject(string $message): never

@@ -36,7 +36,10 @@ class LinkTargetServiceTest extends TestCase
     {
         return [
             'google fragment' => ['google_review', 'https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4#extra'],
+            'google duplicate placeid' => ['google_review', 'https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4&placeid=DifferentPlaceId123'],
+            'google encoded duplicate placeid' => ['google_review', 'https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4&%70laceid=DifferentPlaceId123'],
             'instagram fragment' => ['instagram_follow', 'https://www.instagram.com/ornek.hesap?xtok=abcdEFGH1234#extra'],
+            'instagram duplicate token' => ['instagram_follow', 'https://www.instagram.com/ornek.hesap?xtok=abcdEFGH1234&xtok=anotherToken1234'],
             'instagram port' => ['instagram_follow', 'https://www.instagram.com:8443/ornek.hesap?xtok=abcdEFGH1234'],
             'google user info' => ['google_review', 'https://user:pass@search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4'],
             'unknown type' => ['unknown', 'https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4'],
