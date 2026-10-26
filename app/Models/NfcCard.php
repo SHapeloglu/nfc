@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\NfcCardFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,14 @@ class NfcCard extends Model
             'verified_at' => 'datetime',
             'delivered_at' => 'datetime',
         ];
+    }
+
+    /** Boş UID NULL olarak saklanır; böylece (user_id, tag_uid) benzersiz indeksi boş değerleri çakıştırmaz. */
+    protected function tagUid(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value): ?string => filled($value) ? $value : null,
+        );
     }
 
     public function user(): BelongsTo

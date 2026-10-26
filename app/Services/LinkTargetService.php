@@ -33,6 +33,16 @@ class LinkTargetService
             $this->reject('Geçerli bir HTTPS bağlantısı girin.');
         }
 
+        // Aynı hedefin farklı yazımla (nokta segmenti, IDN/punycode) geçmesini engelle.
+        if (
+            preg_match('/[^\x21-\x7E]/', $host) ||
+            str_contains($host, 'xn--') ||
+            preg_match('#(^|/)(\.|%2e)(\.|%2e)?(/|$)#i', $url['path'] ?? '') ||
+            str_contains($url['path'] ?? '', '//')
+        ) {
+            $this->reject('Geçerli bir HTTPS bağlantısı girin.');
+        }
+
         parse_str($url['query'] ?? '', $params);
 
         if ($type === 'google_review') {

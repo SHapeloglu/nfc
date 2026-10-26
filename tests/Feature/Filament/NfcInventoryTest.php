@@ -9,6 +9,7 @@ use App\Models\Business;
 use App\Models\LinkProject;
 use App\Models\NfcCard;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -245,6 +246,22 @@ class NfcInventoryTest extends TestCase
         }
         $this->assertCount(0, DB::getQueryLog(), 'business canDelete must not query when has_cards is preloaded');
         DB::disableQueryLog();
+    }
+
+    public function test_database_rejects_duplicate_tag_uid_for_same_user(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $otherAdmin = User::factory()->admin()->create();
+        $business = Business::factory()->for($admin)->create();
+        NfcCard::factory()->for($admin)->for($business)->create(['tag_uid' => 'DB-UID-1']);
+        NfcCard::factory()->for($otherAdmin)->for(Business::factory()->for($otherAdmin))->create(['tag_uid' => 'DB-UID-1']);
+        NfcCard::factory()->for($admin)->for($business)->create(['tag_uid' => null]);
+        NfcCard::factory()->for($admin)->for($business)->create(['tag_uid' => '']);
+
+        $this->assertSame(2, NfcCard::query()->where('user_id', $admin->id)->whereNull('tag_uid')->count());
+
+        $this->expectException(QueryException::class);
+        NfcCard::factory()->for($admin)->for($business)->create(['tag_uid' => 'DB-UID-1']);
     }
 
     public function test_delete_checks_fall_back_to_query_when_flag_is_missing(): void

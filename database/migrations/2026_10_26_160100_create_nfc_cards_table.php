@@ -24,6 +24,8 @@ return new class extends Migration
 
             $table->index(['user_id', 'status']);
             $table->index(['user_id', 'business_id']);
+            // Aynı kullanıcıda aynı UID tekrar edemez; NULL değerler birbirini engellemez.
+            $table->unique(['user_id', 'tag_uid']);
         });
     }
 

@@ -42,6 +42,14 @@ class LinkTargetServiceTest extends TestCase
             'instagram duplicate token' => ['instagram_follow', 'https://www.instagram.com/ornek.hesap?xtok=abcdEFGH1234&xtok=anotherToken1234'],
             'instagram port' => ['instagram_follow', 'https://www.instagram.com:8443/ornek.hesap?xtok=abcdEFGH1234'],
             'google user info' => ['google_review', 'https://user:pass@search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4'],
+            'instagram dot segment' => ['instagram_follow', 'https://www.instagram.com/../?xtok=abcdEFGH1234'],
+            'instagram single dot' => ['instagram_follow', 'https://www.instagram.com/./?xtok=abcdEFGH1234'],
+            'instagram nested dot segment' => ['instagram_follow', 'https://www.instagram.com/a/../ornek.hesap?xtok=abcdEFGH1234'],
+            'instagram encoded dot segment' => ['instagram_follow', 'https://www.instagram.com/%2e%2e/?xtok=abcdEFGH1234'],
+            'instagram double slash' => ['instagram_follow', 'https://www.instagram.com//ornek.hesap?xtok=abcdEFGH1234'],
+            'instagram punycode host' => ['instagram_follow', 'https://xn--instagram-xyz.com/ornek.hesap?xtok=abcdEFGH1234'],
+            'instagram idn host' => ['instagram_follow', 'https://www.instagrаm.com/ornek.hesap?xtok=abcdEFGH1234'],
+            'google dot segment' => ['google_review', 'https://search.google.com/local/../local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4'],
             'unknown type' => ['unknown', 'https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4'],
         ];
     }
