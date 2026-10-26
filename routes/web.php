@@ -86,6 +86,9 @@ Route::post('/google-yorum/ara', [
 Route::view('/instagram-takip', 'generators.instagram-follow')
     ->name('instagram.follow.index');
 
+Route::view('/utm-builder', 'generators.utm-builder')
+    ->name('utm.builder.index');
+
 // LINK_PROJECT_STORAGE
 /**
  * Bağlantı/NFC projesini kaydeder. Giriş (auth) ve dakikada 30 istek sınırı vardır; kayıt mantığı LinkProjectController@store içindedir.
