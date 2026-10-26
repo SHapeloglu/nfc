@@ -34,10 +34,14 @@ class WifiQrController extends Controller
             ]);
         }
 
-        if ($data['security'] === 'WPA' && mb_strlen($data['password'] ?? '') < 8) {
-            throw ValidationException::withMessages([
-                'password' => 'WiFi şifresi en az 8 karakter olmalıdır.',
-            ]);
+        if ($data['security'] === 'WPA') {
+            $passwordBytes = strlen($data['password'] ?? '');
+
+            if ($passwordBytes < 8 || $passwordBytes > 63) {
+                throw ValidationException::withMessages([
+                    'password' => 'WiFi şifresi 8-63 bayt uzunluğunda olmalıdır.',
+                ]);
+            }
         }
 
         $escape = static fn (string $value): string => str_replace(

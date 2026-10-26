@@ -91,7 +91,7 @@
             const response = await fetch(form.action, {
                 method: 'POST',
                 body: new FormData(form),
-                headers: { Accept: 'image/svg+xml, application/json' },
+                headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
             });
             if (!response.ok) {

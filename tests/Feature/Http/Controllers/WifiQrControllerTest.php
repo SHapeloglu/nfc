@@ -49,6 +49,7 @@ class WifiQrControllerTest extends TestCase
             'missing password' => [['ssid' => 'Guest', 'security' => 'WPA'], 'password'],
             'short password' => [['ssid' => 'Guest', 'security' => 'WPA', 'password' => 'short'], 'password'],
             'overlong password' => [['ssid' => 'Guest', 'security' => 'WPA', 'password' => str_repeat('x', 64)], 'password'],
+            'overlong UTF-8 password bytes' => [['ssid' => 'Guest', 'security' => 'WPA', 'password' => str_repeat('ğ', 40)], 'password'],
             'invalid hidden flag' => [['ssid' => 'Guest', 'security' => 'nopass', 'hidden' => 'yes'], 'hidden'],
         ];
     }
