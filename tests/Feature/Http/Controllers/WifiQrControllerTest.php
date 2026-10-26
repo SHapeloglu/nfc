@@ -17,15 +17,19 @@ class WifiQrControllerTest extends TestCase
 
     public function test_password_protected_wifi_generates_private_svg(): void
     {
-        $this->post('/wifi-qr/generate', [
+        $response = $this->post('/wifi-qr/generate', [
             'ssid' => 'Guest Network',
             'security' => 'WPA',
             'password' => 'long-secret-123',
             'hidden' => true,
         ])->assertOk()
             ->assertHeader('Content-Type', 'image/svg+xml')
-            ->assertHeader('X-Content-Type-Options', 'nosniff')
-            ->assertHeader('Cache-Control', 'private, no-store');
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
+
+        $cacheControl = array_map('trim', explode(',', (string) $response->headers->get('Cache-Control')));
+        sort($cacheControl);
+
+        $this->assertSame(['no-store', 'private'], $cacheControl);
     }
 
     public function test_open_wifi_generates_svg_without_password(): void

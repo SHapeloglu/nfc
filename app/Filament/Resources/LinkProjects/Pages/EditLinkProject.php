@@ -41,7 +41,7 @@ class EditLinkProject extends EditRecord
                 ->exists()
         ) {
             throw ValidationException::withMessages([
-                'target_url' => 'Bu bağlantı yazılmış bir NFC karta bağlı. Önce kartı güvenli şekilde yeniden hazırlayın.',
+                'data.target_url' => 'Bu bağlantı yazılmış bir NFC karta bağlı. Önce kartı güvenli şekilde yeniden hazırlayın.',
             ]);
         }
 
@@ -54,7 +54,7 @@ class EditLinkProject extends EditRecord
 
         if ($duplicate) {
             throw ValidationException::withMessages([
-                'target_url' => 'Bu bağlantı zaten kayıtlı.',
+                'data.target_url' => 'Bu bağlantı zaten kayıtlı.',
             ]);
         }
 

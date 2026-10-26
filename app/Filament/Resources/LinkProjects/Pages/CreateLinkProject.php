@@ -31,7 +31,7 @@ class CreateLinkProject extends CreateRecord
 
         if ($existing) {
             throw ValidationException::withMessages([
-                'target_url' => 'Bu bağlantı zaten kayıtlı.',
+                'data.target_url' => 'Bu bağlantı zaten kayıtlı.',
             ]);
         }
 
