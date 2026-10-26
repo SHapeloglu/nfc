@@ -150,4 +150,26 @@ class QrLogoControllerTest extends TestCase
         $this->actingAs($admin)->get('/qr/logos/logo.png')->assertNotFound();
         $this->actingAs($admin)->get('/qr/logos/'.str_replace('.png', '.php', self::LOGO))->assertNotFound();
     }
+    public function test_logo_response_is_private_and_not_cached(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+
+        Storage::disk('local')->put(
+            "qr-logos/{$admin->id}/".self::LOGO,
+            'logo-bytes'
+        );
+
+        $response = $this->actingAs($admin)
+            ->get('/qr/logos/'.self::LOGO);
+
+        $response->assertOk();
+
+        $cacheControl = $response->headers->get('Cache-Control');
+
+        $this->assertStringContainsString('private', $cacheControl);
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringNotContainsString('public', $cacheControl);
+    }
 }

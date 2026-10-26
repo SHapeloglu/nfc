@@ -14,7 +14,8 @@ use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-
+use BaconQrCode\Exception\WriterException;
+use Illuminate\Validation\ValidationException;
 /**
  * QR üretim denetleyicisi.
  */
@@ -64,12 +65,29 @@ class QrGeneratorController extends Controller
             backgroundColor: $color($data['background']),
         );
 
-        // Format seçimi: SVG (vektör, her boyutta net) veya PNG (görüntü).
+        // Önce PNG veya SVG yazıcısını belirle
+	        // Format seçimi: SVG veya PNG.
         $writer = $data['format'] === 'svg'
             ? new SvgWriter()
             : new PngWriter();
 
-        $result = $writer->write($qr);
+        // QR kapasitesi aşılırsa doğrulama hatası döndür.
+        try {
+            $result = $writer->write($qr);
+        } catch (WriterException $exception) {
+            if (!str_contains($exception->getMessage(), 'Data too big')) {
+                throw $exception;
+            }
+
+            throw ValidationException::withMessages([
+                'content' => 'İçerik QR kod kapasitesini aşıyor. Lütfen daha kısa bir metin veya bağlantı kullanın.',
+            ]);
+        }// Format seçimi: SVG (vektör, her boyutta net) veya PNG (görüntü).
+        $writer = $data['format'] === 'svg'
+            ? new SvgWriter()
+            : new PngWriter();
+
+
 
         // Cevap doğrudan dosyadır. no-store: tarayıcı ve ara sunucular saklamaz (içerik hassas olabilir); nosniff: tarayıcı içerik türünü tahmin etmez.
         return response($result->getString(), 200, [

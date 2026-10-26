@@ -101,12 +101,16 @@ class QrLogoController extends Controller
         );
 
         // Dosya tarayıcıya gönderilir. private, no-store: ara bellekte saklanmaz.
-        return response()->file(
+        $response = response()->file(
             Storage::disk('local')->path($path),
             [
-                'Cache-Control' => 'private, no-store',
                 'X-Content-Type-Options' => 'nosniff',
             ]
         );
+
+        $response->setPrivate();
+        $response->headers->set('Cache-Control', 'private, no-store');
+
+        return $response;
     }
 }
