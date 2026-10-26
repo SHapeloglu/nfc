@@ -1,11 +1,11 @@
 # CLAUDE.md — Generator Studio
 
-Laravel 13 uygulaması (PHP 8.4-FPM + nginx, Docker Compose). Canlı adres: `https://nfc.carimatik.com.tr`. İçinde QR kod üretici (PNG/SVG), kayıtlı QR tasarımları ve logo yükleme (yalnız yönetici), Google yorum araması, Instagram takip bağlantısı ve NFC bağlantı projeleri (`LinkProject`, Sanctum API) bulunur. Filament 5 yönetim paneli (`/admin`): `QrDesigns` sayfası ve `LinkProjects` kaynağı.
+Laravel 13 uygulaması (PHP 8.4-FPM + nginx, Docker Compose). Canlı adres: `https://nfc.carimatik.com.tr`. İçinde QR kod üretici (PNG/SVG), kayıtlı QR tasarımları ve logo yükleme (yalnız yönetici), Google yorum araması, Instagram takip bağlantısı ve NFC bağlantı projeleri (`LinkProject`, Sanctum API), WiFi QR, UTM oluşturucu ve NFC işletme/kart envanteri (`Business`, `NfcCard`, yazma/doğrulama akışı) bulunur. Filament 5 yönetim paneli (`/admin`): `QrDesigns` sayfası ve `LinkProjects` kaynağı.
 
 ## Konum
 
 - **Bu dizin geliştirme kopyasıdır:** `/opt/generator-studio-dev` (compose adı `generator-studio-dev`; `./` → konteyner `/var/www/html`). **Canlı kurulum** `/opt/generator-studio` içindedir; oradaki dosyalara dokunma.
-- **Git deposu yok.** Yedek düzeni dosya adı soneki ile: `*.backup-YYYYMMDD-HHMMSS` (örn. `routes/web.php.backup-…`, `app/Models/User.php.before-admin`). Bir dosyayı büyük ölçüde değiştirmeden önce bu düzende yedeğini al.
+- **Git:** Bu dizin (dev) git deposu, dal `main`, uzak `origin` (GitHub `SHapeloglu/nfc`). NFC/entegrasyon değişiklikleri 2026-10-27'de `main`'e commit edildi (540e965, 1709af8, e0d0198); `origin/feature/integration` (PR #1, CI'lı) ile birleştirilir, PR #1 gerçek Android+NTAG testinden sonra Ready/merge edilir. **Canlı `/opt/generator-studio` git deposu değildir** (`.git` yok); karşılaştırma yalnız dosya diff'iyle yapılır. Yedek düzeni dosya adı soneki ile: `*.backup-YYYYMMDD-HHMMSS` (örn. `routes/web.php.backup-…`, `app/Models/User.php.before-admin`). Bir dosyayı büyük ölçüde değiştirmeden önce bu düzende yedeğini al.
 - Dev konteynerleri: `generator-studio-dev-app` (PHP-FPM, `healthy`), `generator-studio-dev-web` (nginx, `127.0.0.1:18087 → 80`). Canlı: `generator-studio-app` / `generator-studio-web` (`127.0.0.1:18085`).
 - Dev, canlıdan **ayrı veritabanı** kullanır; `APP_ENV=local`, `APP_DEBUG=true`. Host nginx sitesi (`/etc/nginx/sites-available/nfc-generator`) yalnız canlı içindir.
 - Host'ta PHP kurulu değil; `php`/`artisan`/`vendor/bin/pint` komutları `docker exec generator-studio-dev-app …` ile çalışır.
@@ -33,9 +33,9 @@ curl -i http://127.0.0.1:18087/up
 - PHP `^8.3` (imaj `php:8.4-fpm-bookworm`), Laravel `^13.17`, Filament `^5.0`, `endroid/qr-code ^6.1`.
 - Veritabanı: ortak PostgreSQL (`postgres-ortak`, veritabanı `generator_studio`, ağ `ortak-db`).
 - Kuyruk `sync`, önbellek `file`, mail `log`, dosya diski `local` (logolar `storage/app/private`).
-- Rotalar (`routes/web.php`): `/`, `/qr`, `/google-yorum`, `/instagram-takip` herkese açık; `/qr/generate` 30 istek/dk; `/qr/designs` GET/POST yönetici kontrolü denetleyicide (`abort_unless is_admin`); `/qr/logos`, `/google-yorum/ara`, `/baglantilar/kaydet`, `/nfc-studio` `auth` + `is_admin`.
+- Rotalar (`routes/web.php`): `/`, `/qr`, `/google-yorum`, `/instagram-takip`, `/wifi-qr`, `/utm-builder` herkese açık; `/qr/generate` ve `/wifi-qr/generate` 30 istek/dk; `/qr/designs` GET/POST yönetici kontrolü denetleyicide (`abort_unless is_admin`); `/qr/logos`, `/google-yorum/ara`, `/baglantilar/kaydet`, `/nfc-studio` `auth` + `is_admin`; `/nfc/cards/{card}/written|verified` `auth` + `is_admin` (denetleyicide) + 30/dk.
 - API (`routes/api.php`): `GET /api/nfc/projects` — `auth:sanctum`, token yetkisi `nfc:read`, `is_admin`, 30 istek/dk.
-- Migration'lar: `users.is_admin`, `qr_designs` (2026-10-22), `link_projects`, `personal_access_tokens` (2026-10-25).
+- Migration'lar: `users.is_admin`, `qr_designs` (2026-10-22), `link_projects`, `personal_access_tokens` (2026-10-25), `link_projects.url_hash`, `businesses`, `nfc_cards` (2026-10-26; dev DB'de uygulandı, canlıda bekliyor).
 - Oturumsuz kullanıcı `auth` korumalı web rotasına girince `/admin/login`'e yönlendirilir (`bootstrap/app.php` `redirectGuestsTo`; `login` adlı rota yoktur).
 
 ## Kurallar
