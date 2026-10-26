@@ -10,6 +10,7 @@ use Database\Factories\LinkProjectFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Bağlantı projesi kaydı. user_id, sahip olan kullanıcıyı tutar; bu alan $fillable içinde değildir ve kod tarafında elle atanır.
@@ -42,5 +43,13 @@ class LinkProject extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Bu bağlantıyı kullanan NFC kartları.
+     */
+    public function nfcCards(): HasMany
+    {
+        return $this->hasMany(NfcCard::class);
     }
 }

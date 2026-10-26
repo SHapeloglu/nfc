@@ -185,4 +185,75 @@ class NfcCardWriteControllerTest extends TestCase
             'written_url' => $project->target_url,
         ])->assertUnprocessable()->assertJsonValidationErrors('card');
     }
+
+    public function test_browser_normalized_addresses_are_accepted_for_the_stored_target(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $cases = [
+            'büyük harfli host' => ['https://Search.Google.com/local/writereview?placeid=ChIJabc', 'https://search.google.com/local/writereview?placeid=ChIJabc'],
+            'varsayılan port' => ['https://Instagram.com:443/kullanici?xtok=abc', 'https://instagram.com/kullanici?xtok=abc'],
+            'boş yol' => ['https://x.example.com', 'https://x.example.com/'],
+            'yüzde kodlama' => ['https://x.example.com/a b', 'https://x.example.com/a%20b'],
+        ];
+
+        foreach ($cases as $label => [$stored, $sent]) {
+            $project = LinkProject::factory()->for($admin)->create(['target_url' => $stored]);
+            $card = NfcCard::factory()->create([
+                'user_id' => $admin->id,
+                'link_project_id' => $project->id,
+            ]);
+
+            $this->actingAs($admin)->postJson(route('nfc.cards.written', $card), [
+                'project_id' => $project->id,
+                'written_url' => $sent,
+            ])->assertOk();
+
+            $this->actingAs($admin)->postJson(route('nfc.cards.verified', $card), [
+                'project_id' => $project->id,
+                'verified_url' => $sent,
+            ])->assertOk()->assertJsonPath('status', 'verified');
+
+            $this->assertSame('verified', $card->fresh()->status, $label);
+        }
+    }
+
+    public function test_a_different_address_is_still_rejected_after_normalization(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = LinkProject::factory()->for($admin)->create([
+            'target_url' => 'https://Search.Google.com/local/writereview?placeid=ChIJabc',
+        ]);
+        $card = NfcCard::factory()->create([
+            'user_id' => $admin->id,
+            'link_project_id' => $project->id,
+        ]);
+
+        foreach (['https://search.google.com/local/writereview?placeid=ChIJABC', 'https://search.google.com/local/writereview?placeid=ChIJabd', 'http://search.google.com/local/writereview?placeid=ChIJabc'] as $other) {
+            $this->actingAs($admin)->postJson(route('nfc.cards.written', $card), [
+                'project_id' => $project->id,
+                'written_url' => $other,
+            ])->assertUnprocessable()->assertJsonValidationErrors('project_id');
+        }
+
+        $this->assertSame('pending', $card->fresh()->status);
+    }
+
+    public function test_locked_card_is_checked_against_the_project_inside_the_transaction(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = LinkProject::factory()->for($admin)->create();
+        $other = LinkProject::factory()->for($admin)->create();
+        $card = NfcCard::factory()->create([
+            'user_id' => $admin->id,
+            'link_project_id' => $other->id,
+        ]);
+
+        $this->actingAs($admin)->postJson(route('nfc.cards.written', $card), [
+            'project_id' => $project->id,
+            'written_url' => $project->target_url,
+        ])->assertUnprocessable()->assertJsonValidationErrors('project_id');
+
+        $this->assertSame('pending', $card->fresh()->status);
+        $this->assertNull($card->fresh()->written_url);
+    }
 }

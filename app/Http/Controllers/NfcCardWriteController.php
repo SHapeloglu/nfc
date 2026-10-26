@@ -24,10 +24,11 @@ class NfcCardWriteController extends Controller
             'written_url' => ['required', 'url', 'max:2048'],
         ]);
 
-        $this->validateProject($request, $card, (int) $data['project_id'], $data['written_url']);
-
-        DB::transaction(function () use ($card, $data): void {
+        DB::transaction(function () use ($request, $card, $data): void {
             $lockedCard = NfcCard::query()->whereKey($card->id)->lockForUpdate()->firstOrFail();
+
+            // Proje ve kart ilişkisi kilit içinde yeniden doğrulanır: kart bu arada başka projeye bağlanmış olabilir.
+            $this->validateProject($request, $lockedCard, (int) $data['project_id'], $data['written_url']);
 
             if (!in_array($lockedCard->status, ['pending', 'failed', 'written'], true)) {
                 throw ValidationException::withMessages([
@@ -55,10 +56,11 @@ class NfcCardWriteController extends Controller
             'verified_url' => ['required', 'url', 'max:2048'],
         ]);
 
-        $this->validateProject($request, $card, (int) $data['project_id'], $data['verified_url']);
-
-        DB::transaction(function () use ($card, $data): void {
+        DB::transaction(function () use ($request, $card, $data): void {
             $lockedCard = NfcCard::query()->whereKey($card->id)->lockForUpdate()->firstOrFail();
+
+            // Proje ve kart ilişkisi kilit içinde yeniden doğrulanır (bkz. written).
+            $this->validateProject($request, $lockedCard, (int) $data['project_id'], $data['verified_url']);
 
             if ($lockedCard->status !== 'written' || $lockedCard->written_url !== $data['verified_url']) {
                 throw ValidationException::withMessages([
@@ -87,10 +89,60 @@ class NfcCardWriteController extends Controller
             ->where('user_id', $request->user()->id)
             ->findOrFail($projectId);
 
-        if ($card->link_project_id !== $project->id || $url !== $project->target_url) {
+        // Hem kayıtlı adres hem istekteki adres aynı kurala göre normalize edilerek karşılaştırılır.
+        if ((int) $card->link_project_id !== $project->id
+            || $this->canonicalUrl($url) !== $this->canonicalUrl($project->target_url)) {
             throw ValidationException::withMessages([
                 'project_id' => 'Kartın bağlantı projesi veya hedef adresi uyuşmuyor.',
             ]);
         }
+    }
+
+    /**
+     * Tarayıcının new URL(adres).href çıktısına yakın, sınırlı bir normalizasyon:
+     * şema ve host küçük harf, boş yol '/', varsayılan port kaldırılır,
+     * boşluk ve bazı özel karakterler yüzde kodlanır. Sorgu ve parça korunur.
+     * Ayrıştırılamayan adres olduğu gibi döner (karşılaştırma yine katı kalır).
+     */
+    private function canonicalUrl(string $url): string
+    {
+        $parts = parse_url($url);
+
+        if ($parts === false || !isset($parts['scheme'], $parts['host'])) {
+            return $url;
+        }
+
+        $scheme = strtolower($parts['scheme']);
+        $defaultPort = ['https' => 443, 'http' => 80][$scheme] ?? null;
+
+        $canonical = $scheme.'://';
+
+        if (isset($parts['user'])) {
+            $canonical .= $parts['user'].(isset($parts['pass']) ? ':'.$parts['pass'] : '').'@';
+        }
+
+        $canonical .= strtolower($parts['host']);
+
+        if (isset($parts['port']) && $parts['port'] !== $defaultPort) {
+            $canonical .= ':'.$parts['port'];
+        }
+
+        $path = $parts['path'] ?? '';
+        $canonical .= $this->percentEncode($path === '' ? '/' : $path, '/[\x00-\x20"<>`{}\x7F-\xFF]/');
+
+        if (isset($parts['query'])) {
+            $canonical .= '?'.$this->percentEncode($parts['query'], '/[\x00-\x20"#<>\x27\x7F-\xFF]/');
+        }
+
+        if (isset($parts['fragment'])) {
+            $canonical .= '#'.$this->percentEncode($parts['fragment'], '/[\x00-\x20"<>`\x7F-\xFF]/');
+        }
+
+        return $canonical;
+    }
+
+    private function percentEncode(string $component, string $pattern): string
+    {
+        return preg_replace_callback($pattern, static fn (array $match): string => sprintf('%%%02X', ord($match[0])), $component);
     }
 }

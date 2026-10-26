@@ -41,9 +41,20 @@ class BusinessResource extends Resource
         return static::canViewAny() && $record->user_id === auth()->id();
     }
 
+    /**
+     * Sahipli kart varsa işletme silinemez; önce kartlar "Yeniden hazırla" ile sıfırlanmalı.
+     */
     public static function canDelete(Model $record): bool
     {
-        return static::canEdit($record) && ! $record->nfcCards()->exists();
+        return static::canEdit($record) && ! static::hasCards($record);
+    }
+
+    /**
+     * Tablo sorgusu withExists('nfcCards as has_cards') ile besleniyorsa sorgu atılmaz.
+     */
+    public static function hasCards(Model $record): bool
+    {
+        return (bool) ($record->has_cards ?? $record->nfcCards()->exists());
     }
 
     public static function canDeleteAny(): bool
@@ -53,7 +64,9 @@ class BusinessResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('user_id', auth()->id());
+        return parent::getEloquentQuery()
+            ->where('user_id', auth()->id())
+            ->withExists('nfcCards as has_cards');
     }
 
     public static function form(Schema $schema): Schema

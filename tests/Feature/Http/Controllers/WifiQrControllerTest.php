@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Http\Controllers;
 
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\SvgWriter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -42,6 +45,25 @@ class WifiQrControllerTest extends TestCase
         $this->assertSame(['no-store', 'private'], $cacheControl);
     }
 
+    public function test_ssid_and_password_spaces_are_preserved_in_qr_payload(): void
+    {
+        // Laravel'in TrimStrings ara katmanı SSID'yi kırpmamalı; WPA parolasının sonundaki boşluk da anlamlıdır.
+        $response = $this->post('/wifi-qr/generate', [
+            'ssid' => 'Ag ',
+            'security' => 'WPA',
+            'password' => 'parola12 ',
+        ])->assertOk();
+
+        $expected = (new SvgWriter())->write(new QrCode(
+            data: 'WIFI:T:WPA;S:Ag ;P:parola12 ;H:false;;',
+            errorCorrectionLevel: ErrorCorrectionLevel::High,
+            size: 500,
+            margin: 20,
+        ))->getString();
+
+        $this->assertSame($expected, $response->getContent());
+    }
+
     public function test_open_wifi_generates_svg_without_password(): void
     {
         $this->post('/wifi-qr/generate', [
@@ -58,6 +80,7 @@ class WifiQrControllerTest extends TestCase
     {
         return [
             'empty ssid' => [['ssid' => '', 'security' => 'nopass'], 'ssid'],
+            'whitespace only ssid' => [['ssid' => '   ', 'security' => 'nopass'], 'ssid'],
             'oversized utf8 ssid' => [['ssid' => str_repeat('ğ', 20), 'security' => 'nopass'], 'ssid'],
             'unsupported security' => [['ssid' => 'Guest', 'security' => 'WEP'], 'security'],
             'missing password' => [['ssid' => 'Guest', 'security' => 'WPA'], 'password'],

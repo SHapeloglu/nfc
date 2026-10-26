@@ -198,6 +198,7 @@
             </p>
 
             <button id="writeButton" type="button" disabled>Karta Yaz ve Doğrula</button>
+            <p id="writeHint" class="muted" role="status"></p>
         </section>
 
     </div>
@@ -228,6 +229,10 @@
     const writeButton = document.getElementById('writeButton');
     const cancelButton = document.getElementById('cancelButton');
     const operationStatus = document.getElementById('operationStatus');
+    const writeHint = document.getElementById('writeHint');
+    // Kart seçenekleri bir kez alınır; liste seçili bağlantıya göre bu kopyadan süzülür.
+    const cardPlaceholder = card.options[0];
+    let cardOptions = Array.from(card.options).slice(1);
     let controller = null;
     let pending = false;
     let operationId = 0;
@@ -272,6 +277,43 @@
         return { id: Number(option.value), projectId };
     }
 
+    /**
+     * Kart listesini seçili bağlantıya göre yeniden doldurur; yalnızca o bağlantıya bağlı kartlar görünür.
+     */
+    function filterCards() {
+        const projectId = project.value;
+        const matching = cardOptions.filter((option) => option.dataset.projectId === projectId);
+
+        card.replaceChildren(cardPlaceholder, ...matching);
+        card.value = '';
+    }
+
+    /**
+     * Yazma düğmesi pasifse nedenini döndürür; işlem kullanılabilirse boş metin.
+     * @returns {string}
+     */
+    function writeBlockReason() {
+        if (!supported()) {
+            return 'Web NFC bu cihazda kullanılamıyor.';
+        }
+
+        if (!project.value) {
+            return 'Önce bir bağlantı seçin.';
+        }
+
+        if (!selectedLink()) {
+            return 'Seçilen bağlantı HTTPS değil; karta yazılamaz.';
+        }
+
+        if (!selectedCard()) {
+            return cardOptions.some((option) => option.dataset.projectId === project.value)
+                ? 'Yazmak için bu bağlantıya bağlı bir kart seçin.'
+                : 'Bu bağlantıya bağlı yazılabilir kart yok. Kartı yönetim panelinden bu bağlantıya bağlayın.';
+        }
+
+        return '';
+    }
+
     async function recordResult(stage, cardId, projectId, url) {
         const endpoint = (stage === 'written' ? writtenEndpoint : verifiedEndpoint)
             .replace('__CARD__', String(cardId));
@@ -302,6 +344,7 @@
         readButton.disabled = pending || !supported();
         writeButton.disabled = pending || !supported() || !selectedLink() || !selectedCard();
         cancelButton.disabled = !pending;
+        writeHint.textContent = pending ? '' : writeBlockReason();
     }
 
     function finish(id, message) {
@@ -351,6 +394,8 @@
     async function scan(expectedUrl = null) {
         const id = ++operationId;
         const recording = verification;
+        // Bu işlem için yalnız ilk okuma sonucu işlenir; doğrulama isteği sürerken gelen ek olaylar yok sayılır.
+        let handled = false;
         controller?.abort();
         controller = new AbortController();
         pending = true;
@@ -368,9 +413,10 @@
                 }
             });
             reader.addEventListener('reading', async ({ message }) => {
-                if (id !== operationId) {
+                if (id !== operationId || handled) {
                     return;
                 }
+                handled = true;
 
                 let url;
 
@@ -392,7 +438,9 @@
                         finish(id, '✓ Kart yeniden okundu. Doğrulama sonucu envantere kaydedildi: ' + url);
                         verification = null;
                         writeButton.textContent = 'Karta Yaz ve Doğrula';
-                        card.selectedOptions[0]?.remove();
+                        // Doğrulanan kart artık yazılabilir listede yer almaz.
+                        cardOptions = cardOptions.filter((option) => option.value !== String(recording.cardId));
+                        filterCards();
                         updateButtons();
                     } catch (error) {
                         finish(id, error.message);
@@ -405,7 +453,10 @@
             });
             await reader.scan({ signal: controller.signal });
         } catch (error) {
-            finish(id, describeError(error));
+            // İşlem zaten sonuçlandıysa (ör. başarılı doğrulama) hata mesajı onu ezmez.
+            if (!handled) {
+                finish(id, describeError(error));
+            }
         }
     }
 
@@ -479,6 +530,7 @@
             option?.dataset.url || 'Henüz bağlantı seçilmedi.';
         verification = null;
         writeButton.textContent = 'Karta Yaz ve Doğrula';
+        filterCards();
         updateButtons();
     });
 
@@ -519,6 +571,7 @@
     });
 
     // Sayfa açılır açılmaz ilk kontrolü yap
+    filterCards();
     showCompatibility();
     updateButtons();
 })();

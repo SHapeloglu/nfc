@@ -10,6 +10,7 @@ use App\Models\LinkProject;
 use App\Models\NfcCard;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class NfcInventoryTest extends TestCase
@@ -143,5 +144,118 @@ class NfcInventoryTest extends TestCase
 
         $this->assertFalse(LinkProjectResource::canDelete($assignedProject));
         $this->assertTrue(LinkProjectResource::canDelete($unusedProject));
+    }
+
+    public function test_only_owner_can_reset_written_verified_or_failed_cards(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $otherAdmin = User::factory()->admin()->create();
+        $business = Business::factory()->for($admin)->create();
+        $otherBusiness = Business::factory()->for($otherAdmin)->create();
+
+        $this->actingAs($admin);
+
+        foreach (['written', 'verified', 'failed'] as $status) {
+            $own = NfcCard::factory()->for($admin)->for($business)->create(['status' => $status]);
+            $other = NfcCard::factory()->for($otherAdmin)->for($otherBusiness)->create(['status' => $status]);
+
+            $this->assertTrue(NfcCardResource::canReset($own), $status.' owned card must be resettable');
+            $this->assertFalse(NfcCardResource::canReset($other), $status.' foreign card must not be resettable');
+        }
+    }
+
+    public function test_pending_and_delivered_cards_cannot_be_reset(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $business = Business::factory()->for($admin)->create();
+        $this->actingAs($admin);
+
+        $pending = NfcCard::factory()->for($admin)->for($business)->create();
+        $delivered = NfcCard::factory()->for($admin)->for($business)->create([
+            'status' => 'delivered',
+            'written_at' => now(),
+            'verified_at' => now(),
+            'delivered_at' => now(),
+        ]);
+
+        $this->assertFalse(NfcCardResource::canReset($pending));
+        $this->assertFalse(NfcCardResource::canReset($delivered));
+    }
+
+    public function test_delivery_and_failure_transitions_respect_status_and_ownership(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $otherAdmin = User::factory()->admin()->create();
+        $business = Business::factory()->for($admin)->create();
+        $otherBusiness = Business::factory()->for($otherAdmin)->create();
+        $this->actingAs($admin);
+
+        $verified = NfcCard::factory()->for($admin)->for($business)->create(['status' => 'verified']);
+        $written = NfcCard::factory()->for($admin)->for($business)->create(['status' => 'written']);
+        $pending = NfcCard::factory()->for($admin)->for($business)->create();
+        $foreignVerified = NfcCard::factory()->for($otherAdmin)->for($otherBusiness)->create(['status' => 'verified']);
+
+        $this->assertTrue(NfcCardResource::canMarkDelivered($verified));
+        $this->assertFalse(NfcCardResource::canMarkDelivered($written));
+        $this->assertFalse(NfcCardResource::canMarkDelivered($pending));
+        $this->assertFalse(NfcCardResource::canMarkDelivered($foreignVerified));
+
+        $this->assertTrue(NfcCardResource::canMarkFailed($pending));
+        $this->assertTrue(NfcCardResource::canMarkFailed($written));
+        $this->assertFalse(NfcCardResource::canMarkFailed($verified));
+        $this->assertFalse(NfcCardResource::canMarkFailed($foreignVerified));
+    }
+
+    public function test_business_with_cards_cannot_be_deleted_but_empty_one_can(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $usedBusiness = Business::factory()->for($admin)->create();
+        $emptyBusiness = Business::factory()->for($admin)->create();
+        NfcCard::factory()->for($admin)->for($usedBusiness)->create();
+        $this->actingAs($admin);
+
+        $this->assertFalse(BusinessResource::canDelete($usedBusiness));
+        $this->assertTrue(BusinessResource::canDelete($emptyBusiness));
+    }
+
+    public function test_delete_checks_use_preloaded_flag_without_extra_queries(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $business = Business::factory()->for($admin)->create();
+        $withCards = LinkProject::factory()->for($admin)->create();
+        $withoutCards = LinkProject::factory()->for($admin)->create();
+        NfcCard::factory()->for($admin)->for($business)->create(['link_project_id' => $withCards->id]);
+        $this->actingAs($admin);
+
+        $projects = LinkProjectResource::getEloquentQuery()->orderBy('id')->get();
+        DB::enableQueryLog();
+        $results = $projects->mapWithKeys(fn (LinkProject $project): array => [
+            $project->id => LinkProjectResource::canDelete($project),
+        ])->all();
+        $this->assertCount(0, DB::getQueryLog(), 'canDelete must not query when has_cards is preloaded');
+        DB::disableQueryLog();
+
+        $this->assertFalse($results[$withCards->id]);
+        $this->assertTrue($results[$withoutCards->id]);
+
+        $businesses = BusinessResource::getEloquentQuery()->get();
+        DB::enableQueryLog();
+        foreach ($businesses as $record) {
+            BusinessResource::canDelete($record);
+        }
+        $this->assertCount(0, DB::getQueryLog(), 'business canDelete must not query when has_cards is preloaded');
+        DB::disableQueryLog();
+    }
+
+    public function test_delete_checks_fall_back_to_query_when_flag_is_missing(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $business = Business::factory()->for($admin)->create();
+        $project = LinkProject::factory()->for($admin)->create();
+        NfcCard::factory()->for($admin)->for($business)->create(['link_project_id' => $project->id]);
+        $this->actingAs($admin);
+
+        $fresh = LinkProject::query()->findOrFail($project->id);
+        $this->assertFalse(LinkProjectResource::canDelete($fresh));
     }
 }
