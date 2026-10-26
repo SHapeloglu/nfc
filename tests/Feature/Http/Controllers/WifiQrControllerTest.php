@@ -15,6 +15,16 @@ class WifiQrControllerTest extends TestCase
             ->assertSee('name="ssid"', false);
     }
 
+    public function test_wifi_page_invalidates_stale_qr_after_credentials_change(): void
+    {
+        $this->get('/wifi-qr')
+            ->assertOk()
+            ->assertSee('form.addEventListener(\'input\', invalidateGeneratedQr)', false)
+            ->assertSee('form.addEventListener(\'change\', invalidateGeneratedQr)', false)
+            ->assertSee('download.removeAttribute(\'href\')', false)
+            ->assertSee('if (submittedVersion !== formVersion) return;', false);
+    }
+
     public function test_password_protected_wifi_generates_private_svg(): void
     {
         $response = $this->post('/wifi-qr/generate', [
