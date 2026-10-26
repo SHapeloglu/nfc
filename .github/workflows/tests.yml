@@ -1,0 +1,106 @@
+name: Laravel tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - 'feature/**'
+
+permissions:
+  contents: read
+
+jobs:
+  phpunit:
+    name: PHPUnit (PHP 8.4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: bcmath, curl, dom, fileinfo, gd, intl, mbstring, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Prepare Laravel directories
+        run: |
+         mkdir -p storage/framework/cache/data
+         mkdir -p storage/framework/sessions
+         mkdir -p storage/framework/testing
+         mkdir -p storage/framework/views
+         mkdir -p storage/logs
+         mkdir -p bootstrap/cache
+         touch .env
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Generate an ephemeral application key
+        run: echo "APP_KEY=$(php artisan key:generate --show --no-interaction)" >> "$GITHUB_ENV"
+
+      - name: Run Laravel test suite
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+        run: php artisan test --display-warnings
+
+  postgres:
+    name: PHPUnit (PHP 8.4, PostgreSQL 16)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: generator_studio_test
+          POSTGRES_USER: generator_test
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U generator_test -d generator_studio_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: bcmath, curl, dom, fileinfo, gd, intl, mbstring, pdo_pgsql, pgsql, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Prepare Laravel directories
+        run: |
+          mkdir -p storage/framework/cache/data
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/testing
+          mkdir -p storage/framework/views
+          mkdir -p storage/logs
+          mkdir -p bootstrap/cache
+          touch .env
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Generate an ephemeral application key
+        run: echo "APP_KEY=$(php artisan key:generate --show --no-interaction)" >> "$GITHUB_ENV"
+
+      - name: Run Laravel test suite against PostgreSQL
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: '5432'
+          DB_DATABASE: generator_studio_test
+          DB_USERNAME: generator_test
+          DB_PASSWORD: test_password
+        run: php artisan test --display-warnings

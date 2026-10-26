@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-{{-- Ana sayfa (/): herkese açık, giriş gerektirmez. Araç kartlarını listeler: /google-yorum, /instagram-takip, /qr. --}}
+{{-- Ana sayfa (/): herkese açık; QR, Google yorum, Instagram, WiFi QR ve UTM araçlarını listeler. --}}
 {{-- Sayfada betik ve sunucuya istek yoktur; yalnızca statik içerik ve stil vardır. "Yönetim Paneli" bağlantısı /admin'e gider (yönetici girişi orada istenir). --}}
-{{-- "Yakında Gelecek" kartları pasiftir (bağlantısız); yeni araç hazır olunca kartı etkin bağlantıya çevirin. --}}
+{{-- NFC Studio bağlantısı yalnız oturum açmış yöneticilere gösterilir. --}}
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -309,7 +309,7 @@
 
         <div class="grid">
 
-            <a class="card" href="/google-yorum">
+            <a class="card" href="{{ route('google.review.index') }}">
                 <div class="card-icon green">⭐</div>
 
                 <h3>Google Yorum Bağlantısı</h3>
@@ -324,7 +324,7 @@
                 </span>
             </a>
 
-            <a class="card" href="/instagram-takip">
+            <a class="card" href="{{ route('instagram.follow.index') }}">
                 <div class="card-icon pink">📸</div>
 
                 <h3>Instagram Takip Bağlantısı</h3>
@@ -339,7 +339,7 @@
                 </span>
             </a>
 
-            <a class="card" href="/qr">
+            <a class="card" href="{{ route('qr.index') }}">
                 <div class="card-icon blue">▦</div>
 
                 <h3>QR Kod Oluşturucu</h3>
@@ -354,22 +354,62 @@
                 </span>
             </a>
 
+            <a class="card" href="{{ route('wifi.qr.index') }}">
+                <div class="card-icon orange">📶</div>
+
+                <h3>WiFi QR</h3>
+
+                <p>
+                    Kablosuz ağ bağlantıları için
+                    QR kod oluşturun.
+                </p>
+
+                <span class="action">Aracı Aç →</span>
+            </a>
+
+            <a class="card" href="{{ route('utm.builder.index') }}">
+                <div class="card-icon cyan">🔗</div>
+
+                <h3>UTM Link Builder</h3>
+
+                <p>
+                    Pazarlama kampanyalarınız için
+                    takip edilebilir bağlantılar hazırlayın.
+                </p>
+
+                <span class="action">Aracı Aç →</span>
+            </a>
+
         </div>
     </section>
 
-    {{-- Yakında gelecek araçlar: tıklanamaz bilgi kartları (article.inactive). --}}
-    <section class="upcoming" aria-labelledby="upcoming-title">
+    {{-- NFC Studio erişimi sunucuda da yönetici yetkisiyle korunur. --}}
+    <section class="upcoming" aria-labelledby="admin-tools-title">
 
-        <h2 id="upcoming-title" class="section-title">
-            Yakında Gelecek
+        <h2 id="admin-tools-title" class="section-title">
+            Yönetim Araçları
         </h2>
 
         <p class="section-description">
-            Generator Studio için geliştirdiğimiz yeni araçlar.
+            NFC kart işlemlerini yöneticiler bu bölümden açabilir.
         </p>
 
         <div class="grid">
 
+            @if(auth()->user()?->is_admin)
+            <a class="card" href="{{ route('nfc.studio') }}">
+                <div class="card-icon purple">📡</div>
+
+                <h3>NFC Studio</h3>
+
+                <p>
+                    NFC kart okuma, bağlantı yazma
+                    ve doğrulama işlemleri.
+                </p>
+
+                <span class="action">Aracı Aç →</span>
+            </a>
+            @else
             <article class="card inactive">
                 <div class="card-icon purple">📡</div>
 
@@ -381,39 +421,10 @@
                 </p>
 
                 <span class="soon">
-                    GELİŞTİRİLİYOR
+                    YÖNETİCİ GİRİŞİ GEREKLİ
                 </span>
             </article>
-
-            <article class="card inactive">
-                <div class="card-icon orange">📶</div>
-
-                <h3>WiFi QR</h3>
-
-                <p>
-                    Kablosuz ağ bağlantıları için
-                    QR kod oluşturma.
-                </p>
-
-                <span class="soon">
-                    YAKINDA
-                </span>
-            </article>
-
-            <article class="card inactive">
-                <div class="card-icon cyan">🔗</div>
-
-                <h3>UTM Link Builder</h3>
-
-                <p>
-                    Pazarlama kampanyaları için
-                    takip edilebilir bağlantılar.
-                </p>
-
-                <span class="soon">
-                    YAKINDA
-                </span>
-            </article>
+            @endif
 
         </div>
     </section>

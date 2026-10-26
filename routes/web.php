@@ -27,6 +27,14 @@ Route::post('/qr/generate', [
     \App\Http\Controllers\QrGeneratorController::class, 'generate'
 ])->middleware('throttle:30,1')->name('qr.generate');
 
+Route::get('/wifi-qr', [
+    \App\Http\Controllers\WifiQrController::class, 'index',
+])->name('wifi.qr.index');
+
+Route::post('/wifi-qr/generate', [
+    \App\Http\Controllers\WifiQrController::class, 'generate',
+])->middleware('throttle:30,1')->name('wifi.qr.generate');
+
 // QR_DESIGN_STORAGE
 /**
  * Kullanıcının kayıtlı QR tasarımlarını JSON olarak listeler. Giriş middleware'i yoktur; yönetici kontrolü denetleyicidedir (yönetici değilse 403).
@@ -86,6 +94,9 @@ Route::post('/google-yorum/ara', [
 Route::view('/instagram-takip', 'generators.instagram-follow')
     ->name('instagram.follow.index');
 
+Route::view('/utm-builder', 'generators.utm-builder')
+    ->name('utm.builder.index');
+
 // LINK_PROJECT_STORAGE
 /**
  * Bağlantı/NFC projesini kaydeder. Giriş (auth) ve dakikada 30 istek sınırı vardır; kayıt mantığı LinkProjectController@store içindedir.
@@ -104,15 +115,13 @@ Route::post('/baglantilar/kaydet', [
  * Yalnız oturumdaki kullanıcının projelerini (id, name, type, target_url) en yeniden eskiye listeler. İstek sınırı yoktur.
  * Oturumsuz kullanıcı /admin/login adresine yönlendirilir (bootstrap/app.php redirectGuestsTo).
  */
-Route::get('/nfc-studio', function (\Illuminate\Http\Request $request) {
-    abort_unless($request->user()?->is_admin, 403);
+Route::get('/nfc-studio', \App\Http\Controllers\NfcStudioController::class)
+    ->middleware('auth')->name('nfc.studio');
 
-    $projects = \App\Models\LinkProject::query()
-        ->where('user_id', $request->user()->id)
-        ->latest()
-        ->get(['id', 'name', 'type', 'target_url']);
+Route::post('/nfc/cards/{card}/written', [
+    \App\Http\Controllers\NfcCardWriteController::class, 'written',
+])->middleware(['auth', 'throttle:30,1'])->name('nfc.cards.written');
 
-    return view('generators.nfc-studio', [
-        'projects' => $projects,
-    ]);
-})->middleware('auth')->name('nfc.studio');
+Route::post('/nfc/cards/{card}/verified', [
+    \App\Http\Controllers\NfcCardWriteController::class, 'verified',
+])->middleware(['auth', 'throttle:30,1'])->name('nfc.cards.verified');

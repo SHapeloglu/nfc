@@ -103,11 +103,24 @@ class QrGeneratorControllerTest extends TestCase
 
         $this->post('/qr/generate', $payload)->assertTooManyRequests();
     }
+
     public function test_returns_422_when_qr_capacity_is_exceeded(): void
     {
         $this->postJson('/qr/generate', [
             ...$this->validPayload(),
             'content' => str_repeat('a', 2000),
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['content'])
+            ->assertJsonPath('errors.content.0', 'İçerik QR kod kapasitesini aşıyor. Lütfen daha kısa bir metin veya bağlantı kullanın.');
+    }
+
+    public function test_returns_422_when_svg_qr_capacity_is_exceeded(): void
+    {
+        $this->postJson('/qr/generate', [
+            ...$this->validPayload(),
+            'content' => str_repeat('a', 2000),
+            'format' => 'svg',
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['content']);

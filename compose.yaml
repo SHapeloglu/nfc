@@ -45,6 +45,12 @@ services:
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - internal
+    # Sağlık kontrolü uygulama düzeyindedir: nginx -> PHP-FPM -> Laravel '/up' (HTTP 200) zincirinin tamamı çalışmalıdır. 30 saniyede bir, 3 kez üst üste hata olursa 'unhealthy'.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/up || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 # internal: bu proje için özel köprü (bridge) ağı. Sadece bu projenin konteynerleri birbirine erişir.
 networks:
