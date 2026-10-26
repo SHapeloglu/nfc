@@ -11,6 +11,7 @@ use App\Filament\Resources\LinkProjects\Pages\ListLinkProjects;
 use App\Filament\Resources\LinkProjects\Schemas\LinkProjectForm;
 use App\Filament\Resources\LinkProjects\Tables\LinkProjectsTable;
 use App\Models\LinkProject;
+use App\Models\NfcCard;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -63,7 +64,9 @@ class LinkProjectResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return static::canEdit($record);
+        // Deletion would NULL nfc_cards.link_project_id and orphan assigned tags.
+        return static::canEdit($record)
+            && ! NfcCard::query()->where('link_project_id', $record->getKey())->exists();
     }
 
     /**

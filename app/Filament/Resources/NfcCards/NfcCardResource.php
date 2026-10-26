@@ -40,7 +40,14 @@ class NfcCardResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return static::canViewAny() && $record->user_id === auth()->id();
+        // Once a card has been written, changing its business/project/UID here
+        // would make inventory disagree with the physical tag.
+        return static::canViewAny()
+            && $record->user_id === auth()->id()
+            && in_array($record->status, ['pending', 'failed'], true)
+            && $record->written_at === null
+            && $record->verified_at === null
+            && $record->delivered_at === null;
     }
 
     public static function canDelete(Model $record): bool

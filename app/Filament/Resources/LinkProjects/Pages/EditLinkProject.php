@@ -5,6 +5,7 @@ namespace App\Filament\Resources\LinkProjects\Pages;
 
 use App\Filament\Resources\LinkProjects\LinkProjectResource;
 use App\Models\LinkProject;
+use App\Models\NfcCard;
 use App\Services\LinkTargetService;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -25,6 +26,25 @@ class EditLinkProject extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        $record = $this->getRecord();
+
+        if (
+            ($record->type !== $data['type'] || $record->target_url !== $data['target_url'])
+            && NfcCard::query()
+                ->where('link_project_id', $record->getKey())
+                ->where(function ($query): void {
+                    $query->whereIn('status', ['written', 'verified', 'delivered'])
+                        ->orWhereNotNull('written_at')
+                        ->orWhereNotNull('verified_at')
+                        ->orWhereNotNull('delivered_at');
+                })
+                ->exists()
+        ) {
+            throw ValidationException::withMessages([
+                'target_url' => 'Bu bağlantı yazılmış bir NFC karta bağlı. Önce kartı güvenli şekilde yeniden hazırlayın.',
+            ]);
+        }
+
         $duplicate = LinkProject::query()
             ->where('user_id', auth()->id())
             ->where('type', $data['type'])

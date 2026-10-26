@@ -3,6 +3,7 @@
 namespace Tests\Feature\Filament;
 
 use App\Filament\Resources\Businesses\Pages\CreateBusiness;
+use App\Filament\Resources\LinkProjects\Pages\EditLinkProject;
 use App\Filament\Resources\NfcCards\Pages\CreateNfcCard;
 use App\Models\Business;
 use App\Models\LinkProject;
@@ -122,5 +123,30 @@ class NfcInventoryFormsTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/nfc-cards/'.$otherCard->id.'/edit')
             ->assertNotFound();
+    }
+
+    public function test_cannot_change_destination_of_a_link_already_written_to_a_card(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $business = Business::factory()->for($admin)->create();
+        $link = LinkProject::factory()->for($admin)->create();
+        NfcCard::factory()->for($admin)->for($business)->create([
+            'link_project_id' => $link->id,
+            'status' => 'written',
+            'written_at' => now(),
+            'written_url' => $link->target_url,
+        ]);
+        $this->actingAs($admin);
+
+        Livewire::test(EditLinkProject::class, ['record' => $link->id])
+            ->fillForm([
+                'name' => 'Değişen hedef',
+                'type' => 'google_review',
+                'target_url' => 'https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4',
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['target_url']);
+
+        $this->assertSame($link->target_url, $link->fresh()->target_url);
     }
 }

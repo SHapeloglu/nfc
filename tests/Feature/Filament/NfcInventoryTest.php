@@ -4,6 +4,7 @@ namespace Tests\Feature\Filament;
 
 use App\Filament\Resources\Businesses\BusinessResource;
 use App\Filament\Resources\NfcCards\NfcCardResource;
+use App\Filament\Resources\LinkProjects\LinkProjectResource;
 use App\Models\Business;
 use App\Models\LinkProject;
 use App\Models\NfcCard;
@@ -107,5 +108,40 @@ class NfcInventoryTest extends TestCase
         $this->assertTrue(NfcCardResource::canDelete($pendingCard));
         $this->assertFalse(NfcCardResource::canDelete($writtenCard));
         $this->assertFalse(NfcCardResource::canDelete($deliveredCard));
+    }
+
+    public function test_written_verified_and_delivered_cards_cannot_be_reassigned_in_admin_panel(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $business = Business::factory()->for($admin)->create();
+        $this->actingAs($admin);
+
+        foreach (['written', 'verified', 'delivered'] as $status) {
+            $card = NfcCard::factory()->for($admin)->for($business)->create(['status' => $status]);
+
+            $this->assertFalse(NfcCardResource::canEdit($card), $status.' card must be immutable');
+        }
+
+        $this->assertFalse(NfcCardResource::canEdit(NfcCard::factory()->for($admin)->for($business)->create([
+            'status' => 'failed',
+            'written_at' => now(),
+        ])));
+    }
+
+    public function test_link_project_assigned_to_a_card_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $business = Business::factory()->for($admin)->create();
+        $assignedProject = LinkProject::factory()->for($admin)->create();
+        $unusedProject = LinkProject::factory()->for($admin)->create();
+        NfcCard::factory()->for($admin)->for($business)->create([
+            'link_project_id' => $assignedProject->id,
+            'status' => 'written',
+        ]);
+
+        $this->actingAs($admin);
+
+        $this->assertFalse(LinkProjectResource::canDelete($assignedProject));
+        $this->assertTrue(LinkProjectResource::canDelete($unusedProject));
     }
 }

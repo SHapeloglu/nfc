@@ -106,6 +106,53 @@ class NfcCardWriteControllerTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('card');
     }
 
+    public function test_readback_with_a_different_url_does_not_verify_the_card(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = LinkProject::factory()->for($admin)->create();
+        $card = NfcCard::factory()->create([
+            'user_id' => $admin->id,
+            'link_project_id' => $project->id,
+        ]);
+
+        $this->actingAs($admin)->postJson(route('nfc.cards.written', $card), [
+            'project_id' => $project->id,
+            'written_url' => $project->target_url,
+        ])->assertOk();
+
+        $this->actingAs($admin)->postJson(route('nfc.cards.verified', $card), [
+            'project_id' => $project->id,
+            'verified_url' => 'https://example.org/other-destination',
+        ])->assertUnprocessable()->assertJsonValidationErrors('project_id');
+
+        $card->refresh();
+        $this->assertSame('written', $card->status);
+        $this->assertNull($card->verified_at);
+    }
+
+    public function test_verified_card_cannot_be_written_again(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = LinkProject::factory()->for($admin)->create();
+        $card = NfcCard::factory()->create([
+            'user_id' => $admin->id,
+            'link_project_id' => $project->id,
+            'status' => 'verified',
+            'written_url' => $project->target_url,
+            'written_at' => now()->subMinute(),
+            'verified_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->postJson(route('nfc.cards.written', $card), [
+            'project_id' => $project->id,
+            'written_url' => $project->target_url,
+        ])->assertUnprocessable()->assertJsonValidationErrors('card');
+
+        $card->refresh();
+        $this->assertSame('verified', $card->status);
+        $this->assertNotNull($card->verified_at);
+    }
+
     public function test_cannot_use_an_unrelated_project_for_a_card(): void
     {
         $admin = User::factory()->admin()->create();
