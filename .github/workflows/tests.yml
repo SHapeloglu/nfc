@@ -35,7 +35,8 @@ jobs:
          mkdir -p storage/framework/views
          mkdir -p storage/logs
          mkdir -p bootstrap/cache
-
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
       - name: Generate an ephemeral application key
         run: echo "APP_KEY=$(php artisan key:generate --show --no-interaction)" >> "$GITHUB_ENV"
 
@@ -86,7 +87,8 @@ jobs:
           mkdir -p storage/framework/views
           mkdir -p storage/logs
           mkdir -p bootstrap/cache
-
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
       - name: Generate an ephemeral application key
         run: echo "APP_KEY=$(php artisan key:generate --show --no-interaction)" >> "$GITHUB_ENV"
 
