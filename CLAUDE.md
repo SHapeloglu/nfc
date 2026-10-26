@@ -20,6 +20,10 @@ docker logs --tail 100 generator-studio-dev-app
 curl -i http://127.0.0.1:18087/up
 ```
 
+## Testler
+
+`docker exec generator-studio-dev-app php artisan test --compact` — `phpunit.xml` SQLite `:memory:` kullanır, dev PostgreSQL'e dokunmaz (`LazilyRefreshDatabase`). Yönetici kullanıcı: `User::factory()->admin()`. Dış HTTP `Http::preventStrayRequests()` + `Http::fake()` ile kapatılır; dosya testlerinde `Storage::fake('local')`. API testlerinde `Sanctum::actingAs` yerine gerçek token (`createToken`) kullan: rota `PersonalAccessToken` bekler. PHP dosyası değiştirince `docker exec generator-studio-dev-app vendor/bin/pint --dirty --format agent`.
+
 ## Proje md dosyaları
 
 `README.md` (özet), `architect.md` (mimari), `task.md` (görevler ve açık sorunlar), `backlog.md` (fikir/teknik borç), `session.md` (oturum günlüğü). Anlamlı bir iş bitince `session.md` ve `task.md` güncellenir.

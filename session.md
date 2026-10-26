@@ -33,6 +33,8 @@ Bu dosya `/opt/generator-studio-dev` geliştirme kopyası içindir. Canlı kopya
 
 **Ek (aynı gün):** `/nfc-studio` 500 hatası giderildi (`bootstrap/app.php` `redirectGuestsTo`). Yorumlar dört ajanla eklendi, depo `github.com/SHapeloglu/nfc` reposuna push edildi (`54d096c`). Düzeltme `778a539` ile push edildi. Dev web portu `18086` → `18087` taşındı (ipad1vnc çakışması giderildi).
 
+**Testler (aynı gün):** 121 test yazıldı ve geçiyor. Bulgular: `/qr/generate` uzun içerikte 500, logo yanıtı `Cache-Control: public` (ayrıntı `task.md`). Henüz commit edilmedi.
+
 ---
 
 ## 2026-10-25 (canlı kopyada yapılan denetim, özet)

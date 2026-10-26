@@ -32,4 +32,4 @@ Laravel `^13.17`, Filament `^5`, Sanctum `^4`, `endroid/qr-code ^6.1`. Kuyruk `s
 ## Dikkat
 - Git deposu `github.com/SHapeloglu/nfc` (public). Yerel yedekler `*.backup-YYYYMMDD-HHMMSS` sonekiyle tutulur ve `.gitignore` ile dışarıda bırakılır.
 - Dev web portu `18087`, canlı `18085`. (`18086` `/opt/ipad1vnc` projesine aittir.)
-- Testler yalnız örnek seviyesinde: `docker exec generator-studio-dev-app php artisan test --compact`.
+- Testler: `docker exec generator-studio-dev-app php artisan test --compact` (SQLite bellek, dev veritabanına dokunmaz; 121 test).

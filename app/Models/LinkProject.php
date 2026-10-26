@@ -1,10 +1,13 @@
 <?php
+
 // Kayıtlı bağlantının modeli (link_projects tablosu). Her kayıt bir kullanıcıya aittir (user_id).
 // Türe özel ek bilgiler (place_id, username) 'metadata' alanında JSON olarak saklanır.
 // Kullanıldığı yer: LinkProjectController ve Filament 'Bağlantı Yönetimi' kaynağı.
 
 namespace App\Models;
 
+use Database\Factories\LinkProjectFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -13,6 +16,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class LinkProject extends Model
 {
+    /** @use HasFactory<LinkProjectFactory> */
+    use HasFactory;
+
     protected $fillable = [
         'name',
         'type',

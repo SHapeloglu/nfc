@@ -1,4 +1,5 @@
 <?php
+
 // Test ve geliştirme için sahte kullanıcı üretir. Kullanım: User::factory()->create().
 // Tüm kullanıcılar aynı şifreyi ('password') alır; bu sadece test verisi içindir.
 // Sahte isim ve e-posta için Laravel'in fake() yardımcısı (Faker kütüphanesi) kullanılır.
@@ -44,6 +45,16 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Kullanıcıyı yönetici (is_admin=true) yapar.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_admin' => true,
         ]);
     }
 }
