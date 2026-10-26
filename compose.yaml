@@ -1,0 +1,57 @@
+# Generator Studio (PHP-FPM + nginx) projesi. İki servis var: app (PHP uygulaması) ve web (nginx).
+# Veritabanı ortak PostgreSQL'dir; app, ortak-db ağı üzerinden ona bağlanır.
+# Proje adı (name) docker compose'un ağ ve konteyner adlarına ön ek olarak verilir.
+name: generator-studio-dev
+
+services:
+  # app: PHP-FPM çalıştıran konteyner. nginx gelen istekleri buraya iletir; kendisi dışa port açmaz.
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    image: generator-studio-php:8.4
+    container_name: generator-studio-dev-app
+    # unless-stopped: sunucu açılınca kalkar, çökerse yeniden başlar; elle durdurulursa kalkmaz.
+    restart: unless-stopped
+    # Komutların çalışacağı klasör: uygulama kodunun konteyner içindeki yolu.
+    working_dir: /var/www/html
+    # Proje klasörü (./) konteynere bağlanır. Kod değişikliği imajı yeniden kurmadan görünür (geliştirme kolaylığı).
+    volumes:
+      - ./:/var/www/html
+    # internal: web ile app arasındaki özel ağ. ortak-db: veritabanına erişim için.
+    networks:
+      - internal
+      - ortak-db
+    # Sağlık kontrolü: 'php -v' başarılıysa konteyner sağlıklı sayılır. 30 saniyede bir, 3 kez üst üste hata olursa 'unhealthy'.
+    healthcheck:
+      test: ["CMD-SHELL", "php -v >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # web: nginx. Statik dosyaları sunar, PHP isteklerini app servisine yönlendirir.
+  web:
+    image: nginx:stable-alpine
+    container_name: generator-studio-dev-web
+    restart: unless-stopped
+    depends_on:
+      - app
+    # TODO(kontrol): dev web portu 127.0.0.1:18086; /opt/ipad1vnc/docker-compose.yml de 18086 tanımlıyor, çakışma; karar bekliyor (task.md).
+    ports:
+      - "127.0.0.1:18086:80"
+    # Kod salt okunur (:ro) bağlanır: nginx dosyaları okur ama değiştiremez. default.conf nginx site ayarıdır.
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - internal
+
+# internal: bu proje için özel köprü (bridge) ağı. Sadece bu projenin konteynerleri birbirine erişir.
+networks:
+  internal:
+    driver: bridge
+
+  # ortak-db: dışarıdan (external) gelen ağ. Önceden oluşturulmuş olmalıdır.
+  ortak-db:
+    external: true
+    name: ortak-db
