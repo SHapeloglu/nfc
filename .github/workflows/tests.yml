@@ -35,6 +35,7 @@ jobs:
          mkdir -p storage/framework/views
          mkdir -p storage/logs
          mkdir -p bootstrap/cache
+         touch .env
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
       - name: Generate an ephemeral application key
@@ -45,7 +46,7 @@ jobs:
           APP_ENV: testing
           DB_CONNECTION: sqlite
           DB_DATABASE: ':memory:'
-        run: php artisan test --compact
+        run: php artisan test --display-warnings
 
   postgres:
     name: PHPUnit (PHP 8.4, PostgreSQL 16)
@@ -87,6 +88,7 @@ jobs:
           mkdir -p storage/framework/views
           mkdir -p storage/logs
           mkdir -p bootstrap/cache
+          touch .env
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
       - name: Generate an ephemeral application key
@@ -101,4 +103,4 @@ jobs:
           DB_DATABASE: generator_studio_test
           DB_USERNAME: generator_test
           DB_PASSWORD: test_password
-        run: php artisan test --compact
+        run: php artisan test --display-warnings

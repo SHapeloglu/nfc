@@ -70,6 +70,28 @@
     const error = document.getElementById('error');
     const button = document.getElementById('generate');
     let objectUrl = null;
+    let formVersion = 0;
+
+    function clearGeneratedQr() {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+        preview.removeAttribute('src');
+        preview.hidden = true;
+        download.removeAttribute('href');
+        download.hidden = true;
+    }
+
+    function invalidateGeneratedQr(event) {
+        if (event.target.name === 'ssid' || event.target.name === 'security' ||
+            event.target.name === 'password' || event.target.name === 'hidden') {
+            formVersion++;
+            clearGeneratedQr();
+            error.textContent = '';
+        }
+    }
+
+    form.addEventListener('input', invalidateGeneratedQr);
+    form.addEventListener('change', invalidateGeneratedQr);
 
     function updateSecurity() {
         const secured = security.value === 'WPA';
@@ -86,6 +108,8 @@
     form.addEventListener('submit', async event => {
         event.preventDefault();
         error.textContent = '';
+        clearGeneratedQr();
+        const submittedVersion = ++formVersion;
         button.disabled = true;
         try {
             const response = await fetch(form.action, {
@@ -98,15 +122,19 @@
                 const body = await response.json().catch(() => null);
                 throw new Error(body?.errors ? Object.values(body.errors).flat().join(' ') : 'QR oluşturulamadı. Lütfen bilgileri kontrol edin.');
             }
-            const url = URL.createObjectURL(await response.blob());
-            if (objectUrl) URL.revokeObjectURL(objectUrl);
+            const svg = await response.blob();
+            if (submittedVersion !== formVersion) return;
+            const url = URL.createObjectURL(svg);
             objectUrl = url;
             preview.src = url;
             preview.hidden = false;
             download.href = url;
             download.hidden = false;
         } catch (exception) {
-            error.textContent = exception.message || 'Bir hata oluştu.';
+            if (submittedVersion === formVersion) {
+                clearGeneratedQr();
+                error.textContent = exception.message || 'Bir hata oluştu.';
+            }
         } finally {
             button.disabled = false;
         }
