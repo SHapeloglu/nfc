@@ -20,6 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
     // JSON/API istekleri yönlendirilmez, 401 alır (aşağıdaki hata ayarı).
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(fn () => route('filament.admin.auth.login'));
+        // WiFi SSID ve parolasının baştaki/sondaki boşlukları anlamlıdır; kırpılırsa QR yanlış ağ bilgisi taşır.
+        $middleware->trimStrings(except: ['ssid', 'password']);
     })
     // Hata cevapları: JSON bekleyen istekler (api/* ya da expectsJson) hata sayfası yerine JSON cevabı alır.
     ->withExceptions(function (Exceptions $exceptions): void {
