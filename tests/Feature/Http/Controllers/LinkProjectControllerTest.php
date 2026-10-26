@@ -4,7 +4,9 @@ namespace Tests\Feature\Http\Controllers;
 
 use App\Models\LinkProject;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -165,5 +167,38 @@ class LinkProjectControllerTest extends TestCase
             'type' => 'google_review',
             'target_url' => self::GOOGLE_URL,
         ])->assertUnprocessable()->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_a_lost_race_returns_the_existing_record_instead_of_a_server_error(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $winnerId = null;
+
+        // Yarış simülasyonu: kontrolcünün "kayıt var mı" sorgusu boş döndükten hemen sonra, kaydetmeden önce
+        // rakip istek aynı kaydı yazmış olur. Rakip kayıt, kontrolcünün kayıt işleminin (savepoint) dışında eklenir;
+        // böylece benzersizlik hatasından sonra geri alınmaz (gerçek yarıştaki ayrı bağlantı gibi).
+        DB::listen(function (QueryExecuted $query) use (&$winnerId, $admin): void {
+            if ($winnerId !== null || ! str_contains($query->sql, 'select') || ! str_contains($query->sql, '"link_projects"')) {
+                return;
+            }
+
+            $winnerId = DB::table('link_projects')->insertGetId([
+                'user_id' => $admin->id,
+                'name' => 'Rakip istek',
+                'type' => 'google_review',
+                'target_url' => self::GOOGLE_URL,
+                'url_hash' => hash('sha256', self::GOOGLE_URL),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        $this->actingAs($admin)->postJson('/baglantilar/kaydet', [
+            'name' => 'Kaybeden',
+            'type' => 'google_review',
+            'target_url' => self::GOOGLE_URL,
+        ])->assertOk()->assertJson(['id' => $winnerId, 'already_exists' => true]);
+
+        $this->assertDatabaseCount('link_projects', 1);
     }
 }

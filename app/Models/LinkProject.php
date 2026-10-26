@@ -28,6 +28,17 @@ class LinkProject extends Model
     ];
 
     /**
+     * Kaydedilirken adresin sha256 özeti url_hash alanına yazılır; (user_id, type, url_hash) benzersiz indeksi
+     * aynı bağlantının eşzamanlı iki kez eklenmesini veritabanı düzeyinde engeller.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (LinkProject $project): void {
+            $project->url_hash = hash('sha256', (string) $project->target_url);
+        });
+    }
+
+    /**
      * 'metadata' veritabanında JSON, PHP'de dizi olarak kullanılır.
      */
     protected function casts(): array

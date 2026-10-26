@@ -11,6 +11,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rules\Unique;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -44,6 +45,18 @@ class LinkProjectForm
                     ->required()
                     ->url()
                     ->maxLength(2048)
+                    // Aynı kullanıcı ve türde aynı adres ikinci kez kaydedilemez (düzenlemede kendi kaydı hariç).
+                    ->unique(
+                        table: 'link_projects',
+                        column: 'target_url',
+                        ignoreRecord: true,
+                        modifyRuleUsing: fn (Unique $rule, Get $get): Unique => $rule
+                            ->where('user_id', auth()->id())
+                            ->where('type', $get('type')),
+                    )
+                    ->validationMessages([
+                        'unique' => 'Bu bağlantı zaten kayıtlı.',
+                    ])
                     ->rules([
                         fn (Get $get): Closure => function (
                             string $attribute,

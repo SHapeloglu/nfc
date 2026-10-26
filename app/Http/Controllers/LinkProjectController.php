@@ -7,8 +7,10 @@ namespace App\Http\Controllers;
 
 use App\Models\LinkProject;
 use App\Services\LinkTargetService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -49,11 +51,7 @@ class LinkProjectController extends Controller
             ->first();
 
         if ($existing) {
-            return response()->json([
-                'id' => $existing->id,
-                'message' => 'Bu bağlantı zaten kayıtlı.',
-                'already_exists' => true,
-            ]);
+            return $this->alreadyExistsResponse($existing);
         }
 
         $project = new LinkProject([
@@ -65,12 +63,40 @@ class LinkProjectController extends Controller
 
         // user_id $fillable içinde değildir (toplu atamayla başka kullanıcıya bağlanamasın); oturumdaki kullanıcıdan elle atanır.
         $project->user_id = $request->user()->id;
-        $project->save();
+        try {
+            // Kayıt kendi (savepoint) işleminde yapılır: PostgreSQL'de benzersizlik hatası dıştaki işlemi iptal etmesin, kazananı bulan sorgu çalışabilsin.
+            DB::transaction(fn () => $project->save());
+        } catch (UniqueConstraintViolationException $exception) {
+            // Eşzamanlı iki istekten kaybeden: kazananın kaydı 'zaten kayıtlı' olarak döner.
+            $winner = LinkProject::query()
+                ->where('user_id', $request->user()->id)
+                ->where('type', $data['type'])
+                ->where('url_hash', hash('sha256', $data['target_url']))
+                ->first();
+
+            if (! $winner) {
+                throw $exception;
+            }
+
+            return $this->alreadyExistsResponse($winner);
+        }
 
         return response()->json([
             'id' => $project->id,
             'message' => 'Bağlantı başarıyla kaydedildi.',
             'already_exists' => false,
         ], 201);
+    }
+
+    /**
+     * Aynı bağlantı zaten kayıtlıysa dönen cevap (200, already_exists=true).
+     */
+    private function alreadyExistsResponse(LinkProject $project): JsonResponse
+    {
+        return response()->json([
+            'id' => $project->id,
+            'message' => 'Bu bağlantı zaten kayıtlı.',
+            'already_exists' => true,
+        ]);
     }
 }

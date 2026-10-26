@@ -115,26 +115,8 @@ Route::post('/baglantilar/kaydet', [
  * Yalnız oturumdaki kullanıcının projelerini (id, name, type, target_url) en yeniden eskiye listeler. İstek sınırı yoktur.
  * Oturumsuz kullanıcı /admin/login adresine yönlendirilir (bootstrap/app.php redirectGuestsTo).
  */
-Route::get('/nfc-studio', function (\Illuminate\Http\Request $request) {
-    abort_unless($request->user()?->is_admin, 403);
-
-    $projects = \App\Models\LinkProject::query()
-        ->where('user_id', $request->user()->id)
-        ->latest()
-        ->get(['id', 'name', 'type', 'target_url']);
-
-    $cards = \App\Models\NfcCard::query()
-        ->where('user_id', $request->user()->id)
-        ->whereIn('status', ['pending', 'failed', 'written'])
-        ->whereNotNull('link_project_id')
-        ->latest()
-        ->get(['id', 'label', 'status', 'link_project_id']);
-
-    return view('generators.nfc-studio', [
-        'projects' => $projects,
-        'cards' => $cards,
-    ]);
-})->middleware('auth')->name('nfc.studio');
+Route::get('/nfc-studio', \App\Http\Controllers\NfcStudioController::class)
+    ->middleware('auth')->name('nfc.studio');
 
 Route::post('/nfc/cards/{card}/written', [
     \App\Http\Controllers\NfcCardWriteController::class, 'written',
