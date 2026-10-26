@@ -45,7 +45,11 @@ class NfcCardResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return static::canEdit($record);
+        return static::canEdit($record)
+            && $record->status === 'pending'
+            && $record->written_at === null
+            && $record->verified_at === null
+            && $record->delivered_at === null;
     }
 
     public static function canDeleteAny(): bool

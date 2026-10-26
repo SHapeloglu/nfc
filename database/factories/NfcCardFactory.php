@@ -14,7 +14,9 @@ class NfcCardFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'business_id' => Business::factory(),
+            'business_id' => fn (array $attributes): int => Business::factory()
+                ->create(['user_id' => $attributes['user_id']])
+                ->id,
             'label' => 'NFC '.fake()->unique()->numerify('#####'),
             'status' => 'pending',
         ];

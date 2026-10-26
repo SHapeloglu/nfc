@@ -79,4 +79,33 @@ class NfcInventoryTest extends TestCase
         $this->assertSame('verified', $card->status);
         $this->assertSame($verifiedAt->toDateTimeString(), $card->verified_at->toDateTimeString());
     }
+
+    public function test_default_card_factory_uses_the_same_owner_for_card_and_business(): void
+    {
+        $card = NfcCard::factory()->create();
+
+        $this->assertSame($card->user_id, $card->business->user_id);
+    }
+
+    public function test_written_or_delivered_cards_cannot_be_deleted_from_admin_panel(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $business = Business::factory()->for($admin)->create();
+
+        $this->actingAs($admin);
+
+        $pendingCard = NfcCard::factory()->for($admin)->for($business)->create();
+        $writtenCard = NfcCard::factory()->for($admin)->for($business)->create([
+            'status' => 'written',
+            'written_at' => now(),
+        ]);
+        $deliveredCard = NfcCard::factory()->for($admin)->for($business)->create([
+            'status' => 'delivered',
+            'delivered_at' => now(),
+        ]);
+
+        $this->assertTrue(NfcCardResource::canDelete($pendingCard));
+        $this->assertFalse(NfcCardResource::canDelete($writtenCard));
+        $this->assertFalse(NfcCardResource::canDelete($deliveredCard));
+    }
 }
