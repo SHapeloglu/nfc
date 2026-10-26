@@ -3,8 +3,8 @@
     Rota: GET /nfc-studio (routes/web.php, 'nfc.studio'). Oturum açmış (auth) ve
     yönetici (is_admin) kullanıcı gerekir; aksi halde rota 403 döner.
     Veri: $projects = oturumdaki kullanıcının kayıtlı bağlantıları (id, name, type, target_url).
-    Bu sürüm yalnızca bağlantı seçimi ve tarayıcının Web NFC desteğini kontrol eder;
-    sunucuya istek atmaz, bu yüzden CSRF token'ı gerekmez (kart okuma/yazma sonraki adım).
+    NFC okuma ve yazma Android Chrome Web NFC aracılığıyla, kullanıcı dokunuşuyla çalışır.
+    İşlemler tarayıcı ile kart arasında yapılır; sunucuya istek atılmaz.
 --}}
 <!DOCTYPE html>
 <html lang="tr">
@@ -83,6 +83,8 @@
             cursor: not-allowed;
         }
 
+        .secondary-button { background: #475569; }
+
         .status {
             padding: 16px;
             background: #12263d;
@@ -109,8 +111,8 @@
     <h1>📡 NFC Studio</h1>
 
     <p class="subtitle">
-        NFC kartlarınızı okuyun, bağlantı seçin ve
-        cihazınızın NFC desteğini kontrol edin.
+        NFC kartlarınızı okuyun, kayıtlı bağlantıyı karta yazın
+        ve yazılan adresi yeniden okutarak doğrulayın.
     </p>
 
     {{-- NFC uyumluluk durumu; metni aşağıdaki script doldurur --}}
@@ -163,31 +165,37 @@
                role="status" aria-live="polite"></p>
         </section>
 
-        {{-- Henüz etkin değil: NDEF kart okuma sonraki adımda eklenecek --}}
         <section class="card">
             <h2>📖 Kart Okuma</h2>
 
             <p>
-                Bir sonraki adımda kartın NDEF
-                kayıtlarını burada okuyacağız.
+                Kartı telefonunuzun NFC alanına yaklaştırın.
+                Karttaki HTTPS bağlantısı gösterilecektir.
             </p>
 
-            <button disabled>Kart Oku — Sonraki Adım</button>
+            <button id="readButton" type="button" disabled>Kart Oku</button>
         </section>
 
-        {{-- Henüz etkin değil: karta yazma, bağlantı seçimi ve NFC doğrulanınca açılacak --}}
         <section class="card">
             <h2>✍️ Karta Yazma</h2>
 
             <p>
-                Bağlantı seçimi ve NFC uyumluluğu
-                doğrulandıktan sonra aktif edilecek.
+                Önce bağlantıyı seçin, ardından boş veya yeniden
+                yazılabilir NDEF kartını telefonunuza yaklaştırın.
             </p>
 
-            <button disabled>Karta Yaz — Sonraki Adım</button>
+            <button id="writeButton" type="button" disabled>Karta Yaz ve Doğrula</button>
         </section>
 
     </div>
+
+    <div id="operationStatus" class="status" role="status" aria-live="polite">
+        Kart işlemi başlatılmadı.
+    </div>
+
+    <button id="cancelButton" class="secondary-button" type="button" disabled>
+        İşlemi İptal Et
+    </button>
 
 </div>
 
@@ -200,6 +208,14 @@
     const compatibility = document.getElementById('compatibility');
     const checkButton = document.getElementById('checkButton');
     const checkResult = document.getElementById('checkResult');
+    const readButton = document.getElementById('readButton');
+    const writeButton = document.getElementById('writeButton');
+    const cancelButton = document.getElementById('cancelButton');
+    const operationStatus = document.getElementById('operationStatus');
+    let controller = null;
+    let pending = false;
+    let operationId = 0;
+    let verificationUrl = null;
 
     /**
      * Web NFC kullanılabilir mi? Güvenli bağlam (HTTPS) ve NDEFReader gerekir.
@@ -208,6 +224,144 @@
     function supported() {
         return window.isSecureContext &&
                typeof window.NDEFReader === 'function';
+    }
+
+    function selectedLink() {
+        const option = project.selectedOptions[0];
+        const value = option?.dataset.url;
+
+        if (!value) {
+            return null;
+        }
+
+        try {
+            const url = new URL(value);
+            return url.protocol === 'https:' ? url.href : null;
+        } catch {
+            return null;
+        }
+    }
+
+    function updateButtons() {
+        readButton.disabled = pending || !supported();
+        writeButton.disabled = pending || !supported() || !selectedLink();
+        cancelButton.disabled = !pending;
+    }
+
+    function finish(id, message) {
+        if (id !== operationId) {
+            return;
+        }
+
+        controller?.abort();
+        controller = null;
+        pending = false;
+        operationStatus.textContent = message;
+        updateButtons();
+    }
+
+    function describeError(error) {
+        switch (error?.name) {
+            case 'NotAllowedError': return 'NFC izni verilmedi. Tarayıcı izinlerini kontrol edin.';
+            case 'NotSupportedError': return 'Bu cihaz veya kart NDEF işlemini desteklemiyor.';
+            case 'NotReadableError': return 'Kart okunamadı. NFC özelliğini ve kartı kontrol edin.';
+            case 'InvalidStateError': return 'Başka bir NFC işlemi sürüyor olabilir.';
+            case 'AbortError': return 'İşlem iptal edildi.';
+            default: return 'NFC işlemi başarısız oldu. Kartı yeniden deneyin.';
+        }
+    }
+
+    function cardUrl(message) {
+        for (const record of message.records) {
+            if (record.recordType !== 'url' || !record.data) {
+                continue;
+            }
+
+            const decoded = new TextDecoder().decode(record.data);
+
+            try {
+                const url = new URL(decoded);
+                if (url.protocol === 'https:') {
+                    return url.href;
+                }
+            } catch {
+                // Sonraki NDEF kaydına geç.
+            }
+        }
+
+        return null;
+    }
+
+    async function scan(expectedUrl = null) {
+        const id = ++operationId;
+        controller?.abort();
+        controller = new AbortController();
+        pending = true;
+        updateButtons();
+
+        const reader = new NDEFReader();
+        reader.addEventListener('readingerror', () => {
+            if (id === operationId) {
+                operationStatus.textContent = 'Kart okunamadı. Yeniden yaklaştırın.';
+            }
+        });
+        reader.addEventListener('reading', ({ message }) => {
+            const url = cardUrl(message);
+
+            if (expectedUrl !== null) {
+                finish(id, url === expectedUrl
+                    ? '✓ Doğrulama başarılı. Kartta doğru bağlantı kayıtlı: ' + url
+                    : '✗ Doğrulama başarısız. Kartta beklenen bağlantı bulunamadı.');
+                verificationUrl = null;
+                writeButton.textContent = 'Karta Yaz ve Doğrula';
+            } else {
+                finish(id, url
+                    ? 'Kart okundu. HTTPS bağlantısı: ' + url
+                    : 'Kart okundu ancak HTTPS URL kaydı bulunamadı.');
+            }
+        });
+
+        operationStatus.textContent = expectedUrl
+            ? 'Yazma tamamlandı. Doğrulamak için kartı tekrar yaklaştırın.'
+            : 'Kartı telefonunuza yaklaştırın...';
+
+        try {
+            await reader.scan({ signal: controller.signal });
+        } catch (error) {
+            finish(id, describeError(error));
+        }
+    }
+
+    async function writeAndVerify() {
+        const url = selectedLink();
+
+        if (!supported() || !url || pending) {
+            return;
+        }
+
+        const id = ++operationId;
+        controller = new AbortController();
+        pending = true;
+        updateButtons();
+        operationStatus.textContent = 'Yazılabilir NFC kartını telefonunuza yaklaştırın...';
+
+        try {
+            const reader = new NDEFReader();
+            await reader.write({ records: [{ recordType: 'url', data: url }] }, {
+                signal: controller.signal,
+            });
+
+            if (id !== operationId) {
+                return;
+            }
+
+            // Web NFC izinleri kullanıcı etkileşimi gerektirebilir: doğrulama ayrı dokunuşla başlar.
+            verificationUrl = url;
+            writeButton.textContent = 'Yazılanı Doğrula';
+            finish(id, 'Yazma tamamlandı. Kartı yeniden okutmak için “Yazılanı Doğrula” düğmesine basın.');
+        } catch (error) {
+            finish(id, describeError(error));
+        }
     }
 
     /**
@@ -231,6 +385,7 @@
         compatibility.textContent =
             'Web NFC API kullanılabilir görünüyor. ' +
             'Gerçek kart erişimi için cihazın NFC özelliği açık olmalıdır.';
+        updateButtons();
     }
 
     // Seçilen bağlantının hedef adresini (data-url) kullanıcıya göster
@@ -238,6 +393,9 @@
         const option = project.selectedOptions[0];
         selectedUrl.textContent =
             option?.dataset.url || 'Henüz bağlantı seçilmedi.';
+        verificationUrl = null;
+        writeButton.textContent = 'Karta Yaz ve Doğrula';
+        updateButtons();
     });
 
     // Butona basınca durumu yeniden değerlendir; fiziksel kart testi yapılmaz
@@ -249,8 +407,30 @@
             : 'Web NFC kullanılamıyor. Cihaz veya tarayıcı desteğini kontrol edin.';
     });
 
+    readButton.addEventListener('click', () => {
+        if (supported() && !pending) {
+            scan();
+        }
+    });
+    writeButton.addEventListener('click', () => {
+        if (verificationUrl) {
+            scan(verificationUrl);
+        } else {
+            writeAndVerify();
+        }
+    });
+    cancelButton.addEventListener('click', () => {
+        ++operationId;
+        controller?.abort();
+        controller = null;
+        pending = false;
+        operationStatus.textContent = 'İşlem iptal edildi.';
+        updateButtons();
+    });
+
     // Sayfa açılır açılmaz ilk kontrolü yap
     showCompatibility();
+    updateButtons();
 })();
 </script>
 </body>
