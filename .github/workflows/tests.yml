@@ -45,7 +45,7 @@ jobs:
           APP_ENV: testing
           DB_CONNECTION: sqlite
           DB_DATABASE: ':memory:'
-        run: php artisan test --compact
+        run: php artisan test --display-warnings
 
   postgres:
     name: PHPUnit (PHP 8.4, PostgreSQL 16)
@@ -101,4 +101,4 @@ jobs:
           DB_DATABASE: generator_studio_test
           DB_USERNAME: generator_test
           DB_PASSWORD: test_password
-        run: php artisan test --compact
+        run: php artisan test --display-warnings
