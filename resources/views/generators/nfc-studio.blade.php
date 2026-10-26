@@ -243,6 +243,8 @@
     }
 
     function updateButtons() {
+        // Yazım sırasında seçili bağlantı değişirse yanlış kart doğrulanabilir.
+        project.disabled = pending;
         readButton.disabled = pending || !supported();
         writeButton.disabled = pending || !supported() || !selectedLink();
         cancelButton.disabled = !pending;
@@ -299,33 +301,43 @@
         pending = true;
         updateButtons();
 
-        const reader = new NDEFReader();
-        reader.addEventListener('readingerror', () => {
-            if (id === operationId) {
-                operationStatus.textContent = 'Kart okunamadı. Yeniden yaklaştırın.';
-            }
-        });
-        reader.addEventListener('reading', ({ message }) => {
-            const url = cardUrl(message);
-
-            if (expectedUrl !== null) {
-                finish(id, url === expectedUrl
-                    ? '✓ Doğrulama başarılı. Kartta doğru bağlantı kayıtlı: ' + url
-                    : '✗ Doğrulama başarısız. Kartta beklenen bağlantı bulunamadı.');
-                verificationUrl = null;
-                writeButton.textContent = 'Karta Yaz ve Doğrula';
-            } else {
-                finish(id, url
-                    ? 'Kart okundu. HTTPS bağlantısı: ' + url
-                    : 'Kart okundu ancak HTTPS URL kaydı bulunamadı.');
-            }
-        });
-
         operationStatus.textContent = expectedUrl
             ? 'Yazma tamamlandı. Doğrulamak için kartı tekrar yaklaştırın.'
             : 'Kartı telefonunuza yaklaştırın...';
 
         try {
+            const reader = new NDEFReader();
+            reader.addEventListener('readingerror', () => {
+                if (id === operationId) {
+                    operationStatus.textContent = 'Kart okunamadı. Yeniden yaklaştırın.';
+                }
+            });
+            reader.addEventListener('reading', ({ message }) => {
+                if (id !== operationId) {
+                    return;
+                }
+
+                let url;
+
+                try {
+                    url = cardUrl(message);
+                } catch {
+                    finish(id, 'Kartın NDEF verisi çözümlenemedi. Başka kart deneyin.');
+                    return;
+                }
+
+                if (expectedUrl !== null) {
+                    finish(id, url === expectedUrl
+                        ? '✓ Doğrulama başarılı. Kartta doğru bağlantı kayıtlı: ' + url
+                        : '✗ Doğrulama başarısız. Kartta beklenen bağlantı bulunamadı.');
+                    verificationUrl = null;
+                    writeButton.textContent = 'Karta Yaz ve Doğrula';
+                } else {
+                    finish(id, url
+                        ? 'Kart okundu. HTTPS bağlantısı: ' + url
+                        : 'Kart okundu ancak HTTPS URL kaydı bulunamadı.');
+                }
+            });
             await reader.scan({ signal: controller.signal });
         } catch (error) {
             finish(id, describeError(error));
