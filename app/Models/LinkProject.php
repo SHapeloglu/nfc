@@ -10,6 +10,7 @@ use Database\Factories\LinkProjectFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Bağlantı projesi kaydı. user_id, sahip olan kullanıcıyı tutar; bu alan $fillable içinde değildir ve kod tarafında elle atanır.
@@ -27,6 +28,17 @@ class LinkProject extends Model
     ];
 
     /**
+     * Kaydedilirken adresin sha256 özeti url_hash alanına yazılır; (user_id, type, url_hash) benzersiz indeksi
+     * aynı bağlantının eşzamanlı iki kez eklenmesini veritabanı düzeyinde engeller.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (LinkProject $project): void {
+            $project->url_hash = hash('sha256', (string) $project->target_url);
+        });
+    }
+
+    /**
      * 'metadata' veritabanında JSON, PHP'de dizi olarak kullanılır.
      */
     protected function casts(): array
@@ -42,5 +54,13 @@ class LinkProject extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Bu bağlantıyı kullanan NFC kartları.
+     */
+    public function nfcCards(): HasMany
+    {
+        return $this->hasMany(NfcCard::class);
     }
 }

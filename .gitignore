@@ -43,3 +43,8 @@ Thumbs.db
 /storage/framework/
 /storage/logs/
 /bootstrap/cache/*.php
+
+# Editör artıkları
+*.save
+*.swp
+*~

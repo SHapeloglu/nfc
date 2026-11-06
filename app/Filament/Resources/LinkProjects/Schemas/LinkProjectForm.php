@@ -5,11 +5,14 @@
 
 namespace App\Filament\Resources\LinkProjects\Schemas;
 
+use App\Services\LinkTargetService;
+use Closure;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Closure;
+use Illuminate\Validation\Rules\Unique;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Bağlantı formunun alanları ve hedef adres doğrulaması.
@@ -42,101 +45,33 @@ class LinkProjectForm
                     ->required()
                     ->url()
                     ->maxLength(2048)
+                    // Aynı kullanıcı ve türde aynı adres ikinci kez kaydedilemez (düzenlemede kendi kaydı hariç).
+                    ->unique(
+                        table: 'link_projects',
+                        column: 'target_url',
+                        ignoreRecord: true,
+                        modifyRuleUsing: fn (Unique $rule, Get $get): Unique => $rule
+                            ->where('user_id', auth()->id())
+                            ->where('type', $get('type')),
+                    )
+                    ->validationMessages([
+                        'unique' => 'Bu bağlantı zaten kayıtlı.',
+                    ])
                     ->rules([
-                        fn (Get $get): Closure =>
-                            function (
-                                string $attribute,
-                                mixed $value,
-                                Closure $fail
-                            ) use ($get): void {
-                                // Doğrulama türe bağlıdır; ayrıştırılamayan adres hemen reddedilir.
-                                $url = parse_url((string) $value);
-
-                                if (!is_array($url)) {
-                                    $fail('Geçerli bir bağlantı girin.');
-                                    return;
-                                }
-
-                                $scheme = strtolower(
-                                    $url['scheme'] ?? ''
+                        fn (Get $get): Closure => function (
+                            string $attribute,
+                            mixed $value,
+                            Closure $fail
+                        ) use ($get): void {
+                            try {
+                                app(LinkTargetService::class)->metadataFor(
+                                    (string) $get('type'),
+                                    (string) $value
                                 );
-
-                                $host = strtolower(
-                                    $url['host'] ?? ''
-                                );
-
-                                // Yalnız https; adrese gömülü kimlik bilgisi ve port reddedilir.
-                                if (
-                                    $scheme !== 'https' ||
-                                    isset($url['user']) ||
-                                    isset($url['pass']) ||
-                                    isset($url['port'])
-                                ) {
-                                    $fail('Yalnızca HTTPS bağlantısı kabul edilir.');
-                                    return;
-                                }
-
-                                $type = $get('type');
-
-                                // Google: yalnız search.google.com yorum yazma yolu ve geçerli placeid kabul edilir.
-                                if ($type === 'google_review') {
-                                    parse_str(
-                                        $url['query'] ?? '',
-                                        $params
-                                    );
-
-                                    if (
-                                        $host !== 'search.google.com' ||
-                                        ($url['path'] ?? '') !==
-                                            '/local/writereview' ||
-                                        !is_string(
-                                            $params['placeid'] ?? null
-                                        ) ||
-                                        !preg_match(
-                                            '/^[A-Za-z0-9_-]{10,200}$/',
-                                            $params['placeid']
-                                        )
-                                    ) {
-                                        $fail(
-                                            'Geçerli bir Google yorum bağlantısı girin.'
-                                        );
-                                    }
-                                // Instagram: profil kullanıcı adı ve xtok paylaşım jetonu zorunludur.
-                                } elseif ($type === 'instagram_follow') {
-                                    parse_str(
-                                        $url['query'] ?? '',
-                                        $params
-                                    );
-
-                                    $username = trim(
-                                        $url['path'] ?? '',
-                                        '/'
-                                    );
-
-                                    if (
-                                        !in_array(
-                                            $host,
-                                            ['instagram.com', 'www.instagram.com'],
-                                            true
-                                        ) ||
-                                        !preg_match(
-                                            '/^[A-Za-z0-9._]{1,30}$/',
-                                            $username
-                                        ) ||
-                                        !is_string(
-                                            $params['xtok'] ?? null
-                                        ) ||
-                                        !preg_match(
-                                            '/^[A-Za-z0-9_+\/=-]{8,256}$/',
-                                            $params['xtok']
-                                        )
-                                    ) {
-                                        $fail(
-                                            'Instagram profil paylaşım bağlantısı girin.'
-                                        );
-                                    }
-                                }
-                            },
+                            } catch (ValidationException $exception) {
+                                $fail($exception->errors()['target_url'][0]);
+                            }
+                        },
                     ]),
             ]);
     }

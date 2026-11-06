@@ -81,7 +81,13 @@ class QrDesignControllerTest extends TestCase
         $response->assertOk()->assertJsonPath('name', 'Kampanya')->assertJsonPath('message', 'Tasarim kaydedildi.');
         $design = QrDesign::findOrFail($response->json('id'));
         $this->assertSame($admin->id, $design->user_id);
-        $this->assertSame($this->validSettings(), $design->settings);
+
+        $expectedSettings = $this->validSettings();
+        $savedSettings = $design->settings;
+        ksort($expectedSettings);
+        ksort($savedSettings);
+
+        $this->assertSame($expectedSettings, $savedSettings);
     }
 
     public function test_ignores_unknown_settings_keys_and_a_foreign_user_id(): void

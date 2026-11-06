@@ -26,30 +26,20 @@
 
 ## Teknik borç
 
-### Route closure'ları denetleyiciye taşınmalı
-- **Kategori:** teknik borç
-- **Neden:** `/nfc-studio` ve `/api/nfc/projects` `routes/*.php` içinde closure; yetki ve sorgu mantığı rotada. Closure'lı rotalar `route:cache` ile uyumsuzdur.
-- **Notlar:** Denetleyici + Form Request ile diğer uçlarla aynı yapıya getirilebilir.
+### CI (GitHub Actions)
+- **Kategori:** yeni özellik
+- **Neden:** Repo GitHub'da ama testleri ve Pint'i çalıştıran bir iş akışı yok; 151 test yalnız elle çalışıyor.
+- **Notlar:** `.github/workflows/tests.yml`: PHP 8.4, `composer install`, SQLite bellek ile `php artisan test`, `pint --test`. Yerelde denenemez; ilk çalıştırmada ortam eklentileri (intl, gd, pdo_sqlite) gerekir.
 
 ### Tutarlı yetki yardımcısı
 - **Kategori:** teknik borç
 - **Neden:** `abort_unless(... is_admin ...)` beş yerde tekrar ediyor; `QrDesignController` ve `QrLogoController` ayrı `authorizeAdmin` metoduna sahip.
-- **Notlar:** Middleware (`admin`) veya Gate ile tek yerde toplanabilir; oturumsuz yönlendirme sorunuyla (`task.md`) birlikte ele alınmalı.
+- **Notlar:** Middleware (`admin`) ile toplanabilir; yönlendirme düzeltmesi tamam. 151 test bu refactor'u korur. Etkilenen dosyalar: `QrDesignController`, `QrLogoController`, `GoogleReviewController`, `LinkProjectController`, `NfcStudioController`, `NfcProjectController` — paralel işlerle çakışmaması için tek başına yapılmalı.
 
 ### Doğrulama kuralları tekrarı
 - **Kategori:** teknik borç
 - **Neden:** Logo dosya adı regex'i route'ta (büyük harf serbest) ve denetleyicilerde (yalnız küçük harf) farklı.
 - **Notlar:** Tek sabit/kural nesnesinde toplanmalı.
-
-### `link_projects` indeks ve saklama
-- **Kategori:** teknik borç
-- **Neden:** `target_url` `text`; tekrar kontrolü için unique indeks yok.
-- **Notlar:** URL özeti (hash) sütunuyla `(user_id, type, url_hash)` unique indeksi mümkün.
-
-### Kod tabanındaki yedek dosyaları
-- **Kategori:** teknik borç
-- **Neden:** `*.backup-*`, `*.before-*`, `*.bak*` dosyaları uygulama ağacında; karışıklık ve yanlışlıkla yüklenme riski.
-- **Notlar:** Git kurulunca kaldırılabilir.
 
 ### Yorum ve stil tutarlılığı
 - **Kategori:** teknik borç
@@ -58,8 +48,8 @@
 
 ### Konteyner sağlık kontrolü
 - **Kategori:** iyileştirme
-- **Neden:** `app` sağlık kontrolü `php -v`; uygulama (HTTP) düzeyinde değil. `web` konteynerinde kontrol yok.
-- **Notlar:** `/up` ucuna `curl` tabanlı kontrol eklenebilir.
+- **Neden:** `web` artık `/up` ile uygulama düzeyinde kontrol ediliyor (2026-10-26); `app` (PHP-FPM) hâlâ yalnız `php -v`.
+- **Notlar:** FPM'e HTTP ile bakılamaz; `app` için `php-fpm-healthcheck` veya `cgi-fcgi` ile `/ping` düşünülebilir. Düşük öncelik.
 
 ### Dev ortamı dayanıklılığı
 - **Kategori:** araştırma
