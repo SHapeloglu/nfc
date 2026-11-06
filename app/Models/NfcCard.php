@@ -13,7 +13,13 @@ class NfcCard extends Model
     /** @use HasFactory<NfcCardFactory> */
     use HasFactory;
 
-    protected $fillable = ['label', 'status', 'tag_uid', 'written_url', 'written_at', 'verified_at', 'delivered_at'];
+    /**
+     * Mass assignment ile yalnızca kullanıcının form'dan girdiği alanlar yazılabilir.
+     * status ve yazım/doğrulama/teslim zaman damgaları burada YOKTUR: bunlar istekten
+     * (ör. $request->all()) gelerek kartın durumunu sahteleştirmesin diye yalnızca
+     * forceFill(...)->save() ile, yani kodun kendi durum geçişlerinde yazılır.
+     */
+    protected $fillable = ['label', 'tag_uid'];
 
     protected function casts(): array
     {
