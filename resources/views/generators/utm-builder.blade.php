@@ -25,6 +25,16 @@
         .notice { background: #092b36; border: 1px solid #0e7490; border-radius: 10px; padding: 13px; margin-top: 20px; overflow-wrap: anywhere; }
         .error { border-color: #f87171; color: #fecaca; background: #3c1723; }
         .button-row { display: flex; flex-wrap: wrap; align-items: center; }
+        .info { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin: 0 0 0 8px; padding: 0; border-radius: 50%; font-size: 13px; font-weight: 700; font-style: italic; font-family: Georgia, serif; line-height: 1; background: #1e3a5f; border: 1px solid #67e8f9; color: #67e8f9; vertical-align: middle; }
+        .info:hover, .info:focus-visible { background: #67e8f9; color: #080e1c; }
+        .help-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; }
+        .help-top button { margin: 0; }
+        dialog { max-width: 520px; width: calc(100% - 32px); background: #111d33; color: #eaf2ff; border: 1px solid #67e8f9; border-radius: 16px; padding: 24px; }
+        dialog::backdrop { background: rgba(3, 8, 18, .75); }
+        dialog h3 { margin: 0 0 10px; font-size: 20px; }
+        dialog .example { background: #0a1425; border: 1px solid #475b79; border-radius: 9px; padding: 10px 12px; margin: 12px 0; font-family: ui-monospace, monospace; font-size: 14px; color: #67e8f9; overflow-wrap: anywhere; }
+        dialog .tip { font-size: 13px; color: #fbbf24; }
+        dialog .steps { color: #b3c0d6; line-height: 1.7; padding-left: 20px; }
         [hidden] { display: none !important; }
     </style>
 </head>
@@ -34,16 +44,21 @@
     <h1>🔗 UTM Link Builder</h1>
     <p>Bağlantınıza kampanya takip parametreleri ekleyin. Var olan diğer sorgu parametreleri ve bağlantı sonundaki <code>#</code> bölümü korunur. İşlem tarayıcınızda yapılır; bağlantılar sunucuya gönderilmez.</p>
 
+    <div class="help-top">
+        <button type="button" id="howTo" class="secondary">ⓘ Nasıl kullanılır?</button>
+        <button type="button" id="fillExample" class="secondary">Örnekle doldur</button>
+    </div>
+
     <div class="layout">
         <section class="panel" aria-labelledby="builder-heading">
             <h2 id="builder-heading">Kampanya bilgileri</h2>
             <form id="utmForm">
                 <div class="field">
-                    <label for="targetUrl">Hedef bağlantı (HTTPS)</label>
+                    <label for="targetUrl">Hedef bağlantı (HTTPS)<button type="button" class="info" data-help="targetUrl" aria-label="Hedef bağlantı için yardım">i</button></label>
                     <input id="targetUrl" type="url" placeholder="https://ornek.com/sayfa" required maxlength="2048" autocomplete="url">
                 </div>
                 <div class="field">
-                    <label for="channel">Hazır kanal şablonu</label>
+                    <label for="channel">Hazır kanal şablonu<button type="button" class="info" data-help="channel" aria-label="Kanal şablonu için yardım">i</button></label>
                     <select id="channel">
                         <option value="">Kanal seçin</option>
                         <option value="email">Email</option>
@@ -59,23 +74,23 @@
                     </select>
                 </div>
                 <div class="field">
-                    <label for="source">utm_source *</label>
+                    <label for="source">utm_source *<button type="button" class="info" data-help="source" aria-label="utm_source için yardım">i</button></label>
                     <input id="source" required maxlength="100" placeholder="örn. whatsapp">
                 </div>
                 <div class="field">
-                    <label for="medium">utm_medium *</label>
+                    <label for="medium">utm_medium *<button type="button" class="info" data-help="medium" aria-label="utm_medium için yardım">i</button></label>
                     <input id="medium" required maxlength="100" placeholder="örn. social">
                 </div>
                 <div class="field">
-                    <label for="campaign">utm_campaign *</label>
+                    <label for="campaign">utm_campaign *<button type="button" class="info" data-help="campaign" aria-label="utm_campaign için yardım">i</button></label>
                     <input id="campaign" required maxlength="150" placeholder="örn. izmir_nfc_2026">
                 </div>
                 <div class="field">
-                    <label for="term">utm_term (isteğe bağlı)</label>
+                    <label for="term">utm_term (isteğe bağlı)<button type="button" class="info" data-help="term" aria-label="utm_term için yardım">i</button></label>
                     <input id="term" maxlength="150" placeholder="Anahtar kelime">
                 </div>
                 <div class="field">
-                    <label for="content">utm_content (isteğe bağlı)</label>
+                    <label for="content">utm_content (isteğe bağlı)<button type="button" class="info" data-help="content" aria-label="utm_content için yardım">i</button></label>
                     <input id="content" maxlength="150" placeholder="örn. kart_a">
                 </div>
                 <button type="submit">Bağlantı oluştur</button>
@@ -113,6 +128,14 @@
         </div>
     </div>
 </main>
+<dialog id="helpDialog" aria-labelledby="helpTitle">
+    <h3 id="helpTitle"></h3>
+    <div id="helpBody"></div>
+    <div class="button-row">
+        <button type="button" id="helpUse" hidden>Örneği forma yaz</button>
+        <button type="button" id="helpClose" class="secondary">Kapat</button>
+    </div>
+</dialog>
 <script>
 (() => {
     'use strict';
@@ -321,6 +344,80 @@
         }
         refreshTemplates();
         byId('templateStatus').textContent = 'Özel şablon silindi.';
+    });
+
+    // Yardım içerikleri: her alan için açıklama, örnek ve ipucu. 'fill' varsa "Örneği forma yaz" düğmesi o alanı doldurur.
+    const helpTopics = {
+        targetUrl: { title: 'Hedef bağlantı', text: 'Kişinin tıklayınca gideceği sayfa. Yalnızca HTTPS kabul edilir. Bağlantıda zaten başka parametre (?urun=5) veya # bölümü varsa korunur.', example: 'https://ornek.com/kampanya', tip: 'İpucu: Adresi tarayıcıdan kopyalayıp yapıştırın.', fill: { targetUrl: 'https://ornek.com/kampanya' } },
+        channel: { title: 'Hazır kanal şablonu', text: 'Sık kullanılan kanallar için source ve medium alanlarını tek tıkla doldurur. Örneğin WhatsApp seçince source=whatsapp, medium=social yazılır. Sonradan elle değiştirebilirsiniz.', example: 'WhatsApp  →  source: whatsapp, medium: social', tip: 'Kendi kanalınız yoksa sağdaki "Özel kanal şablonları" bölümünden kaydedin.' },
+        source: { title: 'utm_source — Trafik nereden geliyor?', text: 'Bağlantıyı paylaştığınız yer veya platform. Analitik raporunda "kaynak" olarak görünür.', example: 'whatsapp, instagram, bulten, nfc_kart', tip: 'İpucu: Küçük harf ve alt çizgi kullanın; "WhatsApp" ile "whatsapp" raporda iki ayrı satır olur.', fill: { source: 'nfc_kart' } },
+        medium: { title: 'utm_medium — Hangi tür kanal?', text: 'Kanalın genel türü. Raporlarda kaynakları gruplamak için kullanılır.', example: 'social, email, offline, cpc', tip: 'İpucu: Basılı/QR/NFC gibi internet dışı yerler için offline kullanılır.', fill: { medium: 'offline' } },
+        campaign: { title: 'utm_campaign — Hangi kampanya?', text: 'Kampanyanın adı. Aynı kampanyanın tüm bağlantılarında aynı yazın ki sonuçlar tek yerde toplansın.', example: 'izmir_nfc_2026', tip: 'İpucu: Boşluk yerine alt çizgi kullanın; tarih ya da şehir eklemek ayırt etmeyi kolaylaştırır.', fill: { campaign: 'izmir_nfc_2026' } },
+        term: { title: 'utm_term — Anahtar kelime (isteğe bağlı)', text: 'Genelde ücretli aramada hangi anahtar kelimeyle gelindiğini belirtir. Gerekmiyorsa boş bırakın.', example: 'nfc_kartvizit', tip: 'Boş bırakılırsa bağlantıya eklenmez.', fill: { term: 'nfc_kartvizit' } },
+        content: { title: 'utm_content — Hangi sürüm? (isteğe bağlı)', text: 'Aynı kampanyada birden fazla bağlantı/kart/görsel varsa hangisine tıklandığını ayırt eder (A/B testi gibi).', example: 'kart_a, kart_b, logo_buton', tip: 'Boş bırakılırsa bağlantıya eklenmez.', fill: { content: 'kart_a' } },
+    };
+    const fillIds = ['targetUrl', 'source', 'medium', 'campaign', 'term', 'content'];
+    const exampleAll = { targetUrl: 'https://ornek.com/kampanya?urun=5', source: 'nfc_kart', medium: 'offline', campaign: 'izmir_nfc_2026', term: '', content: 'kart_a' };
+    const dialog = byId('helpDialog');
+    let pendingFill = null;
+
+    function fillFields(values) {
+        Object.entries(values).forEach(([id, value]) => { byId(id).value = value; });
+        byId('channel').value = '';
+        invalidateGeneratedUrl();
+    }
+
+    function openHelp(title, html, fill) {
+        byId('helpTitle').textContent = title;
+        byId('helpBody').innerHTML = html;
+        pendingFill = fill || null;
+        byId('helpUse').hidden = !fill;
+        if (typeof dialog.showModal === 'function') {
+            dialog.showModal();
+        } else {
+            dialog.setAttribute('open', '');
+        }
+    }
+
+    // Metinler yukarıdaki sabit tablodan geldiği için innerHTML güvenlidir; kullanıcı girdisi buraya girmez.
+    function topicHtml(topic) {
+        return '<p>' + topic.text + '</p><div class="example">' + topic.example + '</div><p class="tip">' + topic.tip + '</p>';
+    }
+
+    document.querySelectorAll('.info').forEach((button) => {
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
+            const topic = helpTopics[button.dataset.help];
+            openHelp(topic.title, topicHtml(topic), topic.fill);
+        });
+    });
+
+    byId('howTo').addEventListener('click', () => {
+        openHelp('UTM Link Builder nasıl kullanılır?',
+            '<ol class="steps">' +
+            '<li>Hedef bağlantıyı yazın (HTTPS).</li>' +
+            '<li>Kanal şablonu seçin; source ve medium otomatik dolar.</li>' +
+            '<li>Kampanya adını yazın (zorunlu).</li>' +
+            '<li>"Bağlantı oluştur"a basın, kopyalayın veya QR kod yapın.</li></ol>' +
+            '<p>Sonuç örneği:</p><div class="example">https://ornek.com/kampanya?urun=5&amp;utm_source=nfc_kart&amp;utm_medium=offline&amp;utm_campaign=izmir_nfc_2026&amp;utm_content=kart_a</div>' +
+            '<p class="tip">Bilgiler tarayıcınızda işlenir, sunucuya gönderilmez.</p>',
+            exampleAll);
+    });
+
+    byId('fillExample').addEventListener('click', () => fillFields(exampleAll));
+
+    byId('helpUse').addEventListener('click', () => {
+        if (pendingFill) {
+            fillFields(pendingFill);
+        }
+        dialog.close();
+    });
+    byId('helpClose').addEventListener('click', () => dialog.close());
+    // Pencerenin dışına (karartılmış alana) tıklayınca kapat.
+    dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) {
+            dialog.close();
+        }
     });
 
     loadTemplates();
