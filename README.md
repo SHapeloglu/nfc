@@ -19,11 +19,11 @@ curl -i http://127.0.0.1:18087/up                          # sağlık kontrolü
 ## Sayfalar ve uçlar
 | Adres | Açıklama | Erişim |
 |---|---|---|
-| `/`, `/qr`, `/google-yorum`, `/instagram-takip` | Karşılama, QR üretici, Google yorum, Instagram takip | Herkese açık |
-| `POST /qr/generate` | QR üretimi (30 istek/dk) | Herkese açık |
+| `/`, `/qr`, `/wifi-qr`, `/google-yorum`, `/instagram-takip`, `/utm-builder` | Karşılama, QR üretici, Wi-Fi QR, Google yorum, Instagram takip, UTM oluşturucu | Herkese açık |
+| `POST /qr/generate`, `POST /wifi-qr/generate` | Üretim (30 istek/dk) | Herkese açık |
 | `/qr/designs`, `/qr/logos` | Tasarım kaydı, logo yükleme | Yönetici (`users.is_admin`) |
-| `/nfc-studio`, `POST /baglantilar/kaydet` | NFC bağlantı projeleri | Giriş + yönetici |
-| `GET /api/nfc/projects` | Sanctum token (`nfc:read`) ile proje listesi | Yönetici token'ı |
+| `/nfc-studio`, `POST /baglantilar/kaydet`, `POST /nfc/cards/{card}/written\|verified` | NFC bağlantı projeleri, kart yazma/doğrulama | Giriş + yönetici |
+| `/api/nfc/projects`, `/api/nfc/cards` (+ `written`/`verified`) | Sanctum token ile NFC verisi | Yönetici token'ı |
 | `/admin` | Filament paneli (QR Tasarımları, Bağlantı Projeleri) | Yönetici |
 
 ## Teknik özet
@@ -32,4 +32,13 @@ Laravel `^13.17`, Filament `^5`, Sanctum `^4`, `endroid/qr-code ^6.1`. Kuyruk `s
 ## Dikkat
 - Git deposu `github.com/SHapeloglu/nfc` (public). Yerel yedekler `*.backup-YYYYMMDD-HHMMSS` sonekiyle tutulur ve `.gitignore` ile dışarıda bırakılır.
 - Dev web portu `18087`, canlı `18085`. (`18086` `/opt/ipad1vnc` projesine aittir.)
-- Testler: `docker exec generator-studio-dev-app php artisan test --compact` (SQLite bellek, dev veritabanına dokunmaz; 121 test).
+- Testler: `docker exec generator-studio-dev-app php artisan test --compact` (SQLite bellek, dev veritabanına dokunmaz; 244 test, 2026-11-11).
+- NFC kartlara yazan Windows ve Android istemcileri bu repoda değildir; API sözleşmesi için `architect.md` bölümüne bak.
+
+## Erişim (2026-11-10'dan beri)
+
+Dev kopyası https://generator-studio-dev.powerbi.com.tr adresinden (host nginx → `127.0.0.1:18087`) HTTPS ile açılır. 2026-11-12'den beri nginx basic auth ile korunuyor ve `APP_DEBUG=false`. Parola repoda değildir.
+
+Son commit: 2026-11-06 (UTM oluşturucuya alan yardımı, NfcCard mass assignment sertleştirmesi). Modeller: `User`, `QrDesign`, `LinkProject`, `Business`, `NfcCard`.
+
+_README 2026-11-11'de güncellendi (önceki sürüm: `README.md.yedek-20261111`)._

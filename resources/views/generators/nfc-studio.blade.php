@@ -201,6 +201,28 @@
             <p id="writeHint" class="muted" role="status"></p>
         </section>
 
+        {{-- Bilgisayara takılı ACR122U için yerel köprü (nfc_kopru.py, yalnızca 127.0.0.1) --}}
+        <section class="card">
+            <h2>🖥️ PC Okuyucu (ACR122U)</h2>
+
+            <p class="muted">
+                Bu bölüm, bilgisayarınızda <code>nfc_kopru.py</code> çalışırken kullanılır.
+                Telefondaki NFC yerine takılı okuyucuyla okur ve yazar.
+            </p>
+
+            <p id="bridgeStatus" class="muted" role="status" aria-live="polite">Köprü aranıyor...</p>
+
+            <button id="bridgeReadButton" type="button" disabled>PC'den Kartı Oku</button>
+            <button id="bridgeWriteButton" type="button" disabled>PC ile Karta Yaz ve Doğrula</button>
+            <p id="bridgeResult" class="muted" role="status" aria-live="polite"></p>
+
+            <div class="button-row">
+                <button id="bridgeStartButton" type="button">Köprüyü Başlat</button>
+                <button id="bridgeStopButton" class="secondary-button" type="button" disabled>Köprüyü Kapat</button>
+            </div>
+            <p class="muted">Başlat, bilgisayardaki "NFC Köprüsü" bağlantı türünü açar. Chrome izin sorarsa onaylayın.</p>
+        </section>
+
     </div>
 
     <div id="operationStatus" class="status" role="status" aria-live="polite">
@@ -570,10 +592,149 @@
         updateButtons();
     });
 
+    // PC köprüsü (nfc_kopru.py, 127.0.0.1:8765): okuma/yazma köprüde, sunucu bildirimi recordResult ile yapılır
+    const bridgeBase = 'http://127.0.0.1:8765';
+    const bridgeStatus = document.getElementById('bridgeStatus');
+    const bridgeReadButton = document.getElementById('bridgeReadButton');
+    const bridgeWriteButton = document.getElementById('bridgeWriteButton');
+    const bridgeResult = document.getElementById('bridgeResult');
+    const bridgeStartButton = document.getElementById('bridgeStartButton');
+    const bridgeStopButton = document.getElementById('bridgeStopButton');
+    let bridgeReady = false;
+    let bridgeBusy = false;
+
+    async function bridgeRequest(path, body) {
+        const response = await fetch(bridgeBase + path, {
+            method: body === undefined ? 'GET' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: body === undefined ? undefined : JSON.stringify(body),
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(data.hata || ('Köprü hatası (HTTP ' + response.status + ')'));
+        }
+
+        return data;
+    }
+
+    function bridgeUpdateButtons() {
+        const selected = selectedCard();
+        bridgeReadButton.disabled = !bridgeReady || bridgeBusy;
+        bridgeWriteButton.disabled = !bridgeReady || bridgeBusy || !selectedLink() || !selected;
+        bridgeStartButton.disabled = bridgeReady || bridgeBusy;
+        bridgeStopButton.disabled = !bridgeReady || bridgeBusy;
+    }
+
+    async function checkBridge() {
+        try {
+            const status = await bridgeRequest('/durum');
+            bridgeReady = Boolean(status.okuyucu);
+            bridgeStatus.textContent = bridgeReady
+                ? 'Okuyucu hazır: ' + status.okuyucu
+                : 'Köprü çalışıyor ama okuyucu bulunamadı. ACR122U takılı mı?';
+        } catch (error) {
+            bridgeReady = false;
+            bridgeStatus.textContent = 'PC köprüsü bulunamadı. Bilgisayarda nfc_kopru.py çalışıyor mu?';
+        }
+        bridgeUpdateButtons();
+    }
+
+    bridgeReadButton.addEventListener('click', async () => {
+        bridgeBusy = true;
+        bridgeUpdateButtons();
+        bridgeResult.textContent = 'Kartı okuyucuya yaklaştırın...';
+
+        try {
+            const data = await bridgeRequest('/oku', {});
+            bridgeResult.textContent = data.url
+                ? 'Kart okundu. Bağlantı: ' + data.url
+                : 'Kart okundu ama HTTPS bağlantısı yok. ' + data.ndef;
+        } catch (error) {
+            bridgeResult.textContent = error.message;
+        } finally {
+            bridgeBusy = false;
+            bridgeUpdateButtons();
+        }
+    });
+
+    bridgeWriteButton.addEventListener('click', async () => {
+        const url = selectedLink();
+        const selected = selectedCard();
+
+        if (!url || !selected) {
+            bridgeResult.textContent = 'Önce bağlantı ve kart seçin.';
+            return;
+        }
+
+        if (!window.confirm('Okuyucudaki karta şu bağlantı yazılacak:\n' + url + '\n\nOnaylıyor musunuz?')) {
+            return;
+        }
+
+        bridgeBusy = true;
+        bridgeUpdateButtons();
+        bridgeResult.textContent = 'Kartı okuyucuya yaklaştırın, yazılıyor...';
+
+        try {
+            const data = await bridgeRequest('/yaz', { url: url });
+            await recordResult('written', selected.id, selected.projectId, url);
+
+            if (data.dogrulanan === url) {
+                await recordResult('verified', selected.id, selected.projectId, url);
+                bridgeResult.textContent = '✓ Yazıldı, doğrulandı ve sunucuya kaydedildi. Sayfa yenileniyor...';
+                window.setTimeout(() => window.location.reload(), 1500);
+            } else {
+                bridgeResult.textContent = '✗ Yazıldı ama doğrulama başarısız. Kartı yeniden okutup kontrol edin.';
+            }
+        } catch (error) {
+            bridgeResult.textContent = error.message;
+        } finally {
+            bridgeBusy = false;
+            bridgeUpdateButtons();
+        }
+    });
+
+    // Başlat: "nfckopru:" bağlantı türü (kullanıcı kaydı) köprüyü pencere açmadan çalıştırır; durumu birkaç kez yokla
+    bridgeStartButton.addEventListener('click', async () => {
+        bridgeResult.textContent = 'Köprü başlatılıyor...';
+        window.location.href = 'nfckopru:start';
+
+        for (let attempt = 0; attempt < 10; attempt++) {
+            await new Promise((resolve) => window.setTimeout(resolve, 1500));
+            await checkBridge();
+            if (bridgeReady) {
+                bridgeResult.textContent = 'Köprü başlatıldı.';
+                return;
+            }
+        }
+
+        bridgeResult.textContent = 'Köprü başlamadı. Chrome izin istediyse onaylayın; hâlâ olmuyorsa bilgisayarda kurulum gerekebilir.';
+    });
+
+    bridgeStopButton.addEventListener('click', async () => {
+        bridgeBusy = true;
+        bridgeUpdateButtons();
+
+        try {
+            await bridgeRequest('/kapat', {});
+            bridgeResult.textContent = 'Köprü kapatılıyor...';
+            window.setTimeout(checkBridge, 1000);
+        } catch (error) {
+            bridgeResult.textContent = error.message;
+        } finally {
+            bridgeBusy = false;
+            bridgeUpdateButtons();
+        }
+    });
+
+    project.addEventListener('change', bridgeUpdateButtons);
+    card.addEventListener('change', bridgeUpdateButtons);
+
     // Sayfa açılır açılmaz ilk kontrolü yap
     filterCards();
     showCompatibility();
     updateButtons();
+    checkBridge();
 })();
 </script>
 </body>

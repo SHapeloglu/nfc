@@ -32,6 +32,38 @@ Bu dosya `/opt/generator-studio-dev` geliştirme kopyası içindir. Canlı kopya
 
 ---
 
+## 2026-11-11
+
+**Yapılanlar:**
+- Altı md dosyası (`CLAUDE.md`, `README.md`, `architect.md`, `backlog.md`, `session.md`, `task.md`) dev kopyasındaki kodla karşılaştırıldı ve güncellendi. Eski sürümler `*.backup-20261111-*` olarak duruyor.
+- Doğrulamalar:
+  - `php artisan test --compact`: 244 test geçiyor (831 doğrulama). Önceki kayıttaki 121 sayısı eskiydi.
+  - `migrate:status` (dev): 10 migration, hepsi çalışmış. Canlıda da aynı migration'lar batch 6 ile uygulanmış.
+  - `route:list`: NFC kart API'si (`GET /api/nfc/cards`, `POST …/written|verified`), `/wifi-qr`, `/utm-builder`, Filament `Businesses` ve `NfcCards` rotaları dev ve canlıda mevcut.
+  - Git: dev dalı `feature/integration` (HEAD = `origin/feature/integration`, `main`'den 11 commit ileride). CLAUDE.md "dal main" diyordu; düzeltildi.
+
+**Bulgular:**
+- NFC kart API'si, PC köprüsü bölümü ve `NfcCardListController` commit edilmemiş (dev). Canlıda aynı uçlar var; dev'deki start/stop düğmeleri canlıda yok.
+- `README.md` "Erişim" bölümü: dev herkese açık bir domaine bağlı ve `APP_DEBUG=true`. Bu, dışarıya hata ayrıntısı sızdırabilir. Kısıtlama kararı bekliyor (`task.md`).
+- `/nfc-studio` ve `/api/nfc/projects` artık closure değil, denetleyici (`NfcStudioController`, `NfcProjectController`); `backlog.md` ilgili maddesi kapatıldı.
+- Canlı ve dev `CLAUDE.md`/`task.md` dosyalarındaki "nfc_cards canlıda bekliyor" notu eskiydi; canlıda uygulanmış.
+- Yerel `/home/yeliz/nfc` klonundaki md dosyaları eski bir kopyaya ait; bu güncelleme sunucudaki dev kopyasına yapıldı, yerel klon değiştirilmedi.
+
+**Kararlar / neden:**
+- Kod, `.env`, `composer.json`, konteynerler ve canlı dizin değiştirilmedi. Yalnız md dosyaları güncellendi.
+- Commit yapılmadı; NFC değişiklikleri için commit/PR kararı kullanıcıda.
+- `README.md`'deki kullanıcı yazılı "Erişim" bölümü korundu.
+
+**Açık sorunlar:**
+- Dev erişimi ve `APP_DEBUG=true` (karar bekliyor).
+- `/qr/generate` uzun içerik 500 (düzeltilmedi).
+
+**Sıradaki adım:**
+- Kullanıcı kararları: dev erişimi, NFC değişikliklerinin commit/PR durumu, canlıya aktarım.
+- Telefon (Android APK) ve PC (Windows exe) testleri.
+
+---
+
 ## 2026-10-26
 
 **Yapılanlar:**
