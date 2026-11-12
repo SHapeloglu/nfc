@@ -1,6 +1,6 @@
 # backlog.md — Generator Studio (dev) Fikirler ve Teknik Borç
 
-2026-10-26 incelemesiyle yenilendi. Planlanmış işler `task.md` içinde.
+Son güncelleme: 2026-11-11. Planlanmış işler `task.md` içinde.
 
 ## Özellik fikirleri
 
@@ -24,37 +24,57 @@
 - **Neden:** `MAIL_MAILER=log`; bildirim yok.
 - **Notlar:** SMTP ayarları `.env`'de; değerler md'ye yazılmaz.
 
+### Kart yazma istemcilerinin tek kaynağa alınması
+- **Kategori:** iyileştirme
+- **Neden:** Windows (`nfc-pc`) ve Android (`nfc-android`) istemcileri aynı NTAG/NDEF mantığını iki kez yazıyor; mod ve URL doğrulama kuralları ayrı ayrı bakım istiyor.
+- **Notlar:** Önce gerçek cihaz testleri bitsin. Ortak kural: URL `LinkProject.target_url` ile eşleşmeli; serbest mod sunucuya bildirim yapmaz.
+
+### Kart envanteri raporu
+- **Kategori:** yeni özellik
+- **Neden:** Kart durumu (`pending`, `written`, `verified`, `delivered`) Filament tablosunda var ama işletme bazında özet yok.
+- **Notlar:** `delivered_at` alanı var; teslim akışı henüz yok.
+
 ## Teknik borç
 
-### CI (GitHub Actions)
-- **Kategori:** yeni özellik
-- **Neden:** Repo GitHub'da ama testleri ve Pint'i çalıştıran bir iş akışı yok; 151 test yalnız elle çalışıyor.
-- **Notlar:** `.github/workflows/tests.yml`: PHP 8.4, `composer install`, SQLite bellek ile `php artisan test`, `pint --test`. Yerelde denenemez; ilk çalıştırmada ortam eklentileri (intl, gd, pdo_sqlite) gerekir.
+### Route closure'ları denetleyiciye taşınmalı (kısmen tamam)
+- **Kategori:** teknik borç
+- **Neden:** `/nfc-studio` ve `/api/nfc/projects` artık denetleyicilerde (`NfcStudioController`, `NfcProjectController`). `routes/api.php` closure içermiyor. `routes/web.php` içinde tek closure kaldı: ana sayfa `/` closure'ı.
+- **Notlar:** Ana sayfa closure'ı da taşınabilir; ardından `route:cache` denenebilir.
 
 ### Tutarlı yetki yardımcısı
 - **Kategori:** teknik borç
-- **Neden:** `abort_unless(... is_admin ...)` beş yerde tekrar ediyor; `QrDesignController` ve `QrLogoController` ayrı `authorizeAdmin` metoduna sahip.
-- **Notlar:** Middleware (`admin`) ile toplanabilir; yönlendirme düzeltmesi tamam. 151 test bu refactor'u korur. Etkilenen dosyalar: `QrDesignController`, `QrLogoController`, `GoogleReviewController`, `LinkProjectController`, `NfcStudioController`, `NfcProjectController` — paralel işlerle çakışmaması için tek başına yapılmalı.
+- **Neden:** `abort_unless(... is_admin ...)` kontrolü çok yerde tekrar ediyor (QR, Google, bağlantı, NFC denetleyicileri ve API).
+- **Notlar:** Middleware (`admin`) veya Gate ile tek yerde toplanabilir. Yetki modeli değişirse (aşağıdaki "kullanıcı başına alan") birlikte ele alınmalı.
 
 ### Doğrulama kuralları tekrarı
 - **Kategori:** teknik borç
 - **Neden:** Logo dosya adı regex'i route'ta (büyük harf serbest) ve denetleyicilerde (yalnız küçük harf) farklı.
 - **Notlar:** Tek sabit/kural nesnesinde toplanmalı.
 
+### QR içerik sınırı ile hata düzeltme seviyesi
+- **Kategori:** teknik borç
+- **Neden:** `content` en çok 2000 karakter kabul ediyor; hata düzeltme High iken ~1273 karakterden sonra kütüphane hata veriyor ve istek 500 dönüyor.
+- **Notlar:** Sınır ~1200 yapılabilir ya da hata 422 olarak döndürülebilir. `task.md` maddesi.
+
+### Kod tabanındaki yedek dosyaları
+- **Kategori:** teknik borç
+- **Neden:** `*.backup-*`, `*.before-*`, `*.bak*` dosyaları uygulama ağacında; karışıklık ve yanlışlıkla yüklenme riski.
+- **Notlar:** Git kullanılıyor; yedekler `.gitignore`'a eklenebilir veya silinebilir (kullanıcı kararı).
+
 ### Yorum ve stil tutarlılığı
 - **Kategori:** teknik borç
-- **Neden:** Eski dosyalar yoğun Türkçe yorumlu, `LinkProject*` dosyaları yorumsuz.
-- **Notlar:** `vendor/bin/pint` çalıştırılmadı; PHP dosyaları değiştirilirse çalıştırılmalı.
+- **Neden:** Eski dosyalar yoğun Türkçe yorumlu, `LinkProject*` ve NFC dosyaları daha az yorumlu.
+- **Notlar:** PHP dosyaları değiştirilince `vendor/bin/pint --dirty --format agent` çalıştırılmalı.
 
 ### Konteyner sağlık kontrolü
 - **Kategori:** iyileştirme
-- **Neden:** `web` artık `/up` ile uygulama düzeyinde kontrol ediliyor (2026-10-26); `app` (PHP-FPM) hâlâ yalnız `php -v`.
-- **Notlar:** FPM'e HTTP ile bakılamaz; `app` için `php-fpm-healthcheck` veya `cgi-fcgi` ile `/ping` düşünülebilir. Düşük öncelik.
+- **Neden:** `app` sağlık kontrolü `php -v`; uygulama (HTTP) düzeyinde değil. `web` tarafında `/up` kontrolü var.
+- **Notlar:** `app` için de HTTP veya PHP-FPM düzeyinde bir kontrol düşünülebilir.
 
 ### Dev ortamı dayanıklılığı
 - **Kategori:** araştırma
-- **Neden:** Dev, canlıyla aynı PostgreSQL sunucusunu (ayrı veritabanı) ve aynı host'u paylaşıyor; `ortak-db` ağında hatalı bir `.env` canlıya bağlanabilir.
-- **Notlar:** Dev için ayrı kullanıcı/yetki düşünülebilir.
+- **Neden:** Dev, canlıyla aynı PostgreSQL sunucusunu (ayrı veritabanı) ve aynı host'u paylaşıyor. Dev artık herkese açık bir domain'den erişiliyor ve `APP_DEBUG=true` (`README.md`).
+- **Notlar:** Dev için ayrı kullanıcı/yetki düşünülebilir. Erişim kısıtlama kararı `task.md` içinde.
 
 ## Ekleme Şablonu
 
