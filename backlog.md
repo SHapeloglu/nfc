@@ -52,9 +52,9 @@ Son güncelleme: 2026-11-11. Planlanmış işler `task.md` içinde.
 - **Notlar:** Tek sabit/kural nesnesinde toplanmalı.
 
 ### QR içerik sınırı ile hata düzeltme seviyesi
-- **Kategori:** teknik borç
-- **Neden:** `content` en çok 2000 karakter kabul ediyor; hata düzeltme High iken ~1273 karakterden sonra kütüphane hata veriyor ve istek 500 dönüyor.
-- **Notlar:** Sınır ~1200 yapılabilir ya da hata 422 olarak döndürülebilir. `task.md` maddesi.
+- **Kategori:** iyileştirme
+- **Neden:** `content` en çok 2000 karakter kabul ediyor; hata düzeltme High iken ~1273 karakterden sonra kütüphane kapasite hatası veriyor. Şu an 422 dönüyor (500 değil).
+- **Notlar:** İstenirse sınır ~1200'e indirilebilir; kullanıcıya daha net bir önceden uyarı için istemci tarafında sayaç eklenebilir.
 
 ### Kod tabanındaki yedek dosyaları
 - **Kategori:** teknik borç
@@ -73,8 +73,8 @@ Son güncelleme: 2026-11-11. Planlanmış işler `task.md` içinde.
 
 ### Dev ortamı dayanıklılığı
 - **Kategori:** araştırma
-- **Neden:** Dev, canlıyla aynı PostgreSQL sunucusunu (ayrı veritabanı) ve aynı host'u paylaşıyor. Dev artık herkese açık bir domain'den erişiliyor ve `APP_DEBUG=true` (`README.md`).
-- **Notlar:** Dev için ayrı kullanıcı/yetki düşünülebilir. Erişim kısıtlama kararı `task.md` içinde.
+- **Neden:** Dev, canlıyla aynı PostgreSQL sunucusunu (ayrı veritabanı) ve aynı host'u paylaşıyor. Dev, basic auth ve `APP_DEBUG=false` ile korunuyor (2026-11-12).
+- **Notlar:** Dev için ayrı veritabanı kullanıcısı düşünülebilir.
 
 ## Ekleme Şablonu
 

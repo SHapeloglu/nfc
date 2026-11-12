@@ -37,7 +37,7 @@ Laravel `^13.17`, Filament `^5`, Sanctum `^4`, `endroid/qr-code ^6.1`. Kuyruk `s
 
 ## Erişim (2026-11-10'dan beri)
 
-Dev kopyası https://generator-studio-dev.powerbi.com.tr adresinden (host nginx → `127.0.0.1:18087`) HTTPS ile açılmıştır. `APP_ENV=local`/`APP_DEBUG=true` ile çalıştığı için herkese açık bir adreste hata ayrıntıları görünebilir; gerekirse erişim kısıtlanmalıdır.
+Dev kopyası https://generator-studio-dev.powerbi.com.tr adresinden (host nginx → `127.0.0.1:18087`) HTTPS ile açılır. 2026-11-12'den beri nginx basic auth ile korunuyor ve `APP_DEBUG=false`. Parola repoda değildir.
 
 Son commit: 2026-11-06 (UTM oluşturucuya alan yardımı, NfcCard mass assignment sertleştirmesi). Modeller: `User`, `QrDesign`, `LinkProject`, `Business`, `NfcCard`.
 

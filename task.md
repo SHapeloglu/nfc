@@ -4,12 +4,12 @@ Bu dosya `/opt/generator-studio-dev` içindir. Son güncelleme: 2026-11-11 (canl
 
 ## 🔜 Sıradaki
 
-- [ ] **Dev erişimi herkese açık ve `APP_DEBUG=true`** — `README.md` "Erişim" bölümüne göre dev `https://generator-studio-dev.powerbi.com.tr` üzerinden açık. Hata ayrıntıları dışarıya görünebilir. Karar: erişimi kısıtlamak (basic auth, IP kısıtı veya VPN) ya da `APP_DEBUG=false`. Kullanıcı kararı.
+- [x] **Dev erişimi (2026-11-12)** — nginx basic auth eklendi (yetkisiz 401, doğru parola 200); `APP_DEBUG=false`. Eski `.env` ve nginx yedekleri `*.backup-20261112-*` ile duruyor.
 - [ ] **NFC kart API ve kart yazma değişiklikleri commit edilmedi** — `feature/integration` dalında, `origin/feature/integration` ile eşit. Değişmemiş dosyalar: `routes/api.php` (`GET /api/nfc/cards`, `POST …/written|verified` uçları), `resources/views/generators/nfc-studio.blade.php` (PC köprüsü bölümü), `README.md`, untracked `app/Http/Controllers/NfcCardListController.php` ve `tests/Feature/Http/Controllers/NfcCardApiTest.php`. Canlıda aynı uçlar var; dev'deki start/stop düğmeleri canlıda yok. Commit ve PR kararı kullanıcıda.
 - [ ] **Canlı ile dev arasındaki fark** — canlıda `bridgeStartButton` yok (dev'de var). Canlıya aktarım yalnız kullanıcı onayıyla yapılır.
 - [ ] **Telefon ve PC istemcileri test edilecek** — Android APK (`nfc-yazici-usb-debug.apk`, USB host, ACR122U) ve Windows `NfcYazici.exe`: mod seçimi, token girişi, okuma ve yazma. İstemciler bu repoda değil (`~/nfc-android`, `C:\Users\yeliz\nfc-pc`).
 - [ ] **PR #1 (`feature/integration`)** — CLAUDE.md'ye göre gerçek Android+NTAG testinden sonra Ready/merge edilecek.
-- [ ] **`/qr/generate` içerik uzunluğunda 500** — doğrulama `content` için `max:2000` izin veriyor (`QrGeneratorController`), ama hata düzeltme seviyesi High iken yaklaşık 1273+ karakterde `endroid/qr-code` "Data too big" fırlatıyor. Karar: `max`'ı ~1200'e indirmek veya hatayı 422'ye çevirmek. Henüz düzeltilmedi.
+- [x] **`/qr/generate` uzun içerik** — kapasite aşımı artık 422 (`QrGeneratorController`), `QrGeneratorControllerTest` 15/15 geçiyor (2026-11-12). Eski 500 notu kapandı.
 - [ ] **`.env` yedeği gitignore'da değil** — `.gitignore` yalnız `.env.backup` içeriyor; `.env.backup*` deseni eklenmeli (onay gerekir). Dosya içeriği okunmadı.
 - [ ] **Yedek dosyaları dizinde** — `*.backup-*`, `*.before-*`, `*.bak*` dosyaları ağaçta duruyor; `README.md.yedek-20261111` de git'e girmemiş. Silme veya taşıma kararı kullanıcıda.
 - [ ] **Boost talimatı** — `CLAUDE.md` sonundaki `<laravel-boost-guidelines>` bloğu korunuyor; `laravel/boost` `composer.json` `require-dev` içinde. Kurulum/kaldırma kararı kullanıcıda.
